@@ -420,34 +420,14 @@ const handler = async (request: Request) => {
               // DEBUG: Log raw result.steps structure with correct SDK field names
               logger.info("🔍 DEBUG: Raw result.steps structure", {
                 stepsCount: result.steps?.length || 0,
+                cumulativeText: result.text?.slice(0, 100),
                 steps: result.steps?.map((step: any, idx: number) => ({
                   stepIndex: idx,
                   hasText: !!step.text,
-                  textLength: step.text?.length || 0,
-                  toolCalls: step.toolCalls?.map((tc: any) => ({
-                    toolName: tc.toolName,
-                    toolCallId: tc.toolCallId,
-                    // SDK uses `input` not `args`
-                    hasInput: tc.input !== undefined,
-                    inputKeys: tc.input ? Object.keys(tc.input) : [],
-                    inputEmpty:
-                      tc.input &&
-                      typeof tc.input === "object" &&
-                      Object.keys(tc.input).length === 0,
-                    // Fallback check for `args`
-                    hasArgs: tc.args !== undefined,
-                  })),
-                  toolResults: step.toolResults?.map((tr: any) => ({
-                    toolName: tr.toolName,
-                    toolCallId: tr.toolCallId,
-                    // SDK uses `output` not `result`
-                    hasOutput: tr.output !== undefined,
-                    outputType: typeof tr.output,
-                    // Also has input
-                    hasInput: tr.input !== undefined,
-                    // Fallback check
-                    hasResult: tr.result !== undefined,
-                  })),
+                  textPreview: step.text?.slice(0, 50),
+                  toolCallsCount: step.toolCalls?.length || 0,
+                  toolResultsCount: step.toolResults?.length || 0,
+                  toolNames: step.toolCalls?.map((tc: any) => tc.toolName),
                 })),
               });
 
