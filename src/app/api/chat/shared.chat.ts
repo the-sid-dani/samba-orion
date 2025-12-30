@@ -744,33 +744,25 @@ export function buildResponseMessageFromStreamResult(
 ): UIMessage {
   const parts: any[] = [];
 
-  // Extract text content from result
-  if (result.text && result.text.trim()) {
-    parts.push({
-      type: "text",
-      text: result.text,
-    });
-  }
-
-  // Extract tool calls and results from steps
+  // Process steps in order to preserve correct sequence of text, tool calls, and results
+  // Each step represents a turn in the conversation flow
   if (result.steps && Array.isArray(result.steps)) {
     for (const step of result.steps) {
-      // Process tool calls
+      // 1. First, add tool calls for this step (they happen before text response)
       if (step.toolCalls && Array.isArray(step.toolCalls)) {
         for (const toolCall of step.toolCalls) {
-          // Include ALL tool calls for persistence
           // Note: Vercel AI SDK uses `input` not `args` for tool call parameters
           const toolPart: any = {
             type: `tool-${toolCall.toolName}`,
             toolCallId: toolCall.toolCallId,
-            input: toolCall.input ?? toolCall.args ?? {}, // SDK uses `input`, fallback to `args` for compatibility
+            input: toolCall.input ?? toolCall.args ?? {},
             state: "call",
           };
           parts.push(toolPart);
         }
       }
 
-      // Process tool results - update corresponding call parts
+      // 2. Then, update tool calls with their results (in same step)
       // Note: Vercel AI SDK uses `output` not `result`, and also includes `input`
       if (step.toolResults && Array.isArray(step.toolResults)) {
         for (const toolResult of step.toolResults) {
@@ -782,16 +774,12 @@ export function buildResponseMessageFromStreamResult(
               p.toolCallId === toolResult.toolCallId,
           );
 
-          // Get output value - SDK uses `output`, fallback to `result` for compatibility
           const outputValue = toolResult.output ?? toolResult.result;
-          // SDK tool results also include `input`
           const inputValue = toolResult.input;
 
           if (callPart) {
-            // Update the existing part with result
             callPart.state = "output-available";
             callPart.output = outputValue;
-            // If call part has empty input but result has input, use it
             if (
               inputValue &&
               (!callPart.input || Object.keys(callPart.input).length === 0)
@@ -800,18 +788,34 @@ export function buildResponseMessageFromStreamResult(
             }
           } else {
             // No call part found - create result part directly
-            // This can happen with multi-step tool calls or when call wasn't captured
             parts.push({
               type: `tool-${toolResult.toolName}`,
               toolCallId: toolResult.toolCallId,
-              input: inputValue ?? {}, // SDK toolResults include input
+              input: inputValue ?? {},
               state: "output-available",
               output: outputValue,
             });
           }
         }
       }
+
+      // 3. Finally, add text content for this step (after tool execution)
+      // Note: step.text contains the text for this specific step
+      if (step.text && step.text.trim()) {
+        parts.push({
+          type: "text",
+          text: step.text,
+        });
+      }
     }
+  }
+
+  // Fallback: If no steps but result.text exists (simple text response)
+  if (parts.length === 0 && result.text && result.text.trim()) {
+    parts.push({
+      type: "text",
+      text: result.text,
+    });
   }
 
   // Build the response message
