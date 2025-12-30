@@ -127,6 +127,21 @@ export async function selectThreadWithMessagesAction(threadId: string) {
     return { ...m, parts };
   });
 
+  // DEBUG: Log parts order when loading from DB
+  messages.forEach((m) => {
+    if (m.role === "assistant" && m.parts?.length > 1) {
+      logger.info("🔍 DEBUG: Parts order after load", {
+        messageId: m.id,
+        partsCount: m.parts.length,
+        partsOrder: m.parts.map((p: any, i: number) => ({
+          index: i,
+          type: p.type,
+          isToolPart: p.type?.startsWith("tool-"),
+        })),
+      });
+    }
+  });
+
   return { ...thread, messages };
 }
 

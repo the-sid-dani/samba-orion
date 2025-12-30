@@ -575,11 +575,25 @@ const handler = async (request: Request) => {
                 logger.info("✅ User message persisted", { id: message.id });
 
                 // Persist assistant message
+                const partsToSave =
+                  finalResponseMessage.parts.map(convertToSavePart);
+
+                // DEBUG: Log exact order of parts being saved
+                logger.info("🔍 DEBUG: Parts order before save", {
+                  messageId: finalResponseMessage.id,
+                  partsCount: partsToSave.length,
+                  partsOrder: partsToSave.map((p: any, i: number) => ({
+                    index: i,
+                    type: p.type,
+                    isToolPart: p.type?.startsWith("tool-"),
+                  })),
+                });
+
                 await chatRepository.upsertMessage({
                   threadId: thread!.id,
                   role: responseMessage.role,
                   id: finalResponseMessage.id,
-                  parts: finalResponseMessage.parts.map(convertToSavePart),
+                  parts: partsToSave,
                   metadata,
                 });
                 logger.info("✅ Assistant message persisted", {
