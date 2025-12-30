@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Renderer, Camera, Geometry, Program, Mesh } from "ogl";
 import { useTheme } from "next-themes";
 
@@ -110,6 +110,8 @@ const Particles: React.FC<ParticlesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const { theme } = useTheme();
+  // Key to force remount after WebGL context restore
+  const [contextKey, setContextKey] = useState(0);
 
   const getDefaultColors = (): [number, number, number][] => {
     if (theme === "dark") {
@@ -245,9 +247,28 @@ const Particles: React.FC<ParticlesProps> = ({
       renderer.render({ scene: particles, camera });
     };
 
+    // Handle WebGL context loss gracefully (common after browser idle)
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      console.info("ℹ️ Particles: WebGL context lost (browser idle recovery)");
+      cancelAnimationFrame(animationFrameId);
+    };
+
+    const handleContextRestored = () => {
+      console.info("ℹ️ Particles: WebGL context restored - reinitializing");
+      // Force useEffect to re-run by updating state
+      setContextKey((k) => k + 1);
+    };
+
+    const canvas = gl.canvas as HTMLCanvasElement;
+    canvas.addEventListener("webglcontextlost", handleContextLost);
+    canvas.addEventListener("webglcontextrestored", handleContextRestored);
+
     animationFrameId = requestAnimationFrame(update);
 
     return () => {
+      canvas.removeEventListener("webglcontextlost", handleContextLost);
+      canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       window.removeEventListener("resize", resize);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (moveParticlesOnHover) {
@@ -276,6 +297,7 @@ const Particles: React.FC<ParticlesProps> = ({
     cameraDistance,
     disableRotation,
     theme,
+    contextKey, // Re-run effect when context is restored
   ]);
 
   return (

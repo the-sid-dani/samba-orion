@@ -360,12 +360,37 @@ void main() {
         }
       };
 
+      // Handle WebGL context loss gracefully (common after browser idle)
+      const handleContextLost = (event: Event) => {
+        event.preventDefault(); // Prevent default error behavior
+        console.info("ℹ️ LightRays: WebGL context lost (browser idle recovery)");
+        if (animationIdRef.current) {
+          cancelAnimationFrame(animationIdRef.current);
+          animationIdRef.current = null;
+        }
+      };
+
+      const handleContextRestored = () => {
+        console.info("ℹ️ LightRays: WebGL context restored");
+        // Re-initialize on context restore
+        initializeWebGL();
+      };
+
+      const canvas = renderer.gl.canvas as HTMLCanvasElement;
+      canvas.addEventListener("webglcontextlost", handleContextLost);
+      canvas.addEventListener("webglcontextrestored", handleContextRestored);
+
       window.addEventListener("resize", updatePlacement);
       window.addEventListener("beforeunload", handleBeforeUnload);
       updatePlacement();
       animationIdRef.current = requestAnimationFrame(loop);
 
       cleanupFunctionRef.current = () => {
+        canvas.removeEventListener("webglcontextlost", handleContextLost);
+        canvas.removeEventListener(
+          "webglcontextrestored",
+          handleContextRestored,
+        );
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current);
           animationIdRef.current = null;
