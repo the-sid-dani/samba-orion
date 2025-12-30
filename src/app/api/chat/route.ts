@@ -417,27 +417,26 @@ const handler = async (request: Request) => {
             try {
               logger.info("💾 Building response message from stream result");
 
-              // Build assistant response message from captured UI stream parts
-              // CRITICAL: Use the SAME data source the client received (single source of truth)
-              const parts = [
-                // Add text content if present
-                ...(result.text && result.text.trim()
-                  ? [{ type: "text" as const, text: result.text }]
-                  : []),
-                // Add captured tool parts (guaranteed complete from UI stream)
-                ...capturedToolParts,
-              ];
-
-              // SAFETY: If stream capture produced no parts, fallback to original method
-              // This prevents messages with empty parts arrays from being saved
+              // CRITICAL FIX: Always use result.steps as source of truth for tool parts
+              // The capturedToolParts array has a race condition - it's populated by
+              // toUIMessageStream's messageMetadata callback which runs on a different
+              // timing path than onFinish. This caused tool calls to be lost when
+              // onFinish fired before all parts were captured.
+              //
+              // result.steps is populated by streamText and available in onFinish,
+              // making it the reliable source for tool call data.
               const responseMessage: UIMessage =
-                parts.length > 0
-                  ? {
-                      id: (result as any).id || generateUUID(),
-                      role: "assistant" as const,
-                      parts,
-                    }
-                  : buildResponseMessageFromStreamResult(result, message);
+                buildResponseMessageFromStreamResult(result, message);
+
+              logger.info("💾 Built response from result.steps", {
+                stepsCount: result.steps?.length || 0,
+                partsCount: responseMessage.parts.length,
+                toolParts: responseMessage.parts.filter((p: any) =>
+                  p.type?.startsWith("tool-"),
+                ).length,
+                // Log for debugging - capturedToolParts may still be empty due to race
+                capturedToolPartsCount: capturedToolParts.length,
+              });
 
               // FINAL DEFENSE: Guarantee at least one renderable part before persistence.
               const { message: finalResponseMessage, fallbackApplied } =
@@ -446,39 +445,28 @@ const handler = async (request: Request) => {
                   EMPTY_ASSISTANT_FALLBACK_TEXT,
                 );
 
-              logger.info("💾 Response message built from UI stream", {
-                totalParts: responseMessage.parts.length,
-                textParts: responseMessage.parts.filter(
-                  (p) => p.type === "text",
-                ).length,
-                toolParts: capturedToolParts.length,
-                toolTypes: capturedToolParts.map((p) => p.type),
-              });
+              const toolParts = finalResponseMessage.parts.filter((p: any) =>
+                p.type?.startsWith("tool-"),
+              );
 
               logger.info("💾 Persisting messages to database", {
                 userMessageId: message.id,
                 assistantMessageId: finalResponseMessage.id,
                 threadId: thread!.id,
                 partCount: finalResponseMessage.parts.length,
-                // NEW: Detailed part breakdown for validation
                 partBreakdown: {
                   textParts: finalResponseMessage.parts.filter(
-                    (p) => p.type === "text",
+                    (p: any) => p.type === "text",
                   ).length,
-                  toolParts: finalResponseMessage.parts.filter((p) =>
-                    p.type?.startsWith("tool-"),
-                  ).length,
-                  toolStates: finalResponseMessage.parts
-                    .filter((p) => p.type?.startsWith("tool-"))
-                    .map((p) => ({
-                      type: p.type,
-                      state: (p as any).state,
-                    })),
+                  toolParts: toolParts.length,
+                  toolStates: toolParts.map((p: any) => ({
+                    type: p.type,
+                    state: p.state,
+                  })),
                 },
-                // NEW: Validation flags
-                hasToolCalls: capturedToolParts.length > 0,
-                allToolPartsHaveInput: capturedToolParts.every(
-                  (p) => p.input !== undefined,
+                hasToolCalls: toolParts.length > 0,
+                allToolPartsHaveInput: toolParts.every(
+                  (p: any) => p.input !== undefined,
                 ),
               });
 
