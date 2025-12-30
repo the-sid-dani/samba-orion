@@ -2,7 +2,7 @@
 
 **Created:** 2025-12-30  
 **Updated:** 2025-12-30  
-**Status:** ✅ Implementation Complete - Ready for Final Testing  
+**Status:** ✅ Implementation Complete - All 10 Action Items Resolved  
 **Priority:** P0 - Critical  
 **Affects:** All users - messages disappearing, AI losing context mid-conversation  
 
@@ -21,7 +21,7 @@ This tech-spec documents the investigation and resolution of critical chat persi
 | `d586c88` | Fix Vercel AI SDK field names (input/output) | ✅ Deployed |
 | `9199b66` | Fix parts ordering (preserve conversational flow) | ✅ Deployed |
 | `fdfc072` | Handle cumulative text fallback | ✅ Deployed |
-| `da7e243` | Update Node.js to 24.x LTS | ✅ Deployed |
+| `da7e243` | Update Node.js to 24.x ⚠️ | ✅ Deployed |
 
 **Review Command (full diff from stable baseline):**
 ```bash
@@ -215,7 +215,7 @@ Both affect React Server Components with unauthorized access potential.
 
 ## Infrastructure Updates
 
-**Node.js Version:** Pinned to `24.x` LTS in `package.json`
+**Node.js Version:** Pinned to `24.x` in `package.json`
 
 ```json
 "engines": {
@@ -223,7 +223,7 @@ Both affect React Server Components with unauthorized access potential.
 }
 ```
 
-This matches Vercel project settings and eliminates auto-upgrade warnings.
+> ⚠️ **Review Note:** Node.js 24 is the *current* release, not LTS. Node 22 is the actual LTS version. This pin may cause compatibility issues. See Review Follow-ups for action item.
 
 ---
 
@@ -304,6 +304,31 @@ These can be addressed in a separate PR.
 
 ---
 
+## Review Follow-ups (AI)
+
+Code review performed 2025-12-30 by Barry (Quick Flow Solo Dev). **10 issues identified.**
+
+### 🔴 HIGH (Must Fix)
+
+- [x] [AI-Review][HIGH] Node.js 24.x engine pin is premature - Changed to `"node": ">=20"` [`package.json:165`]
+- [x] [AI-Review][HIGH] `capturedToolParts` variable is dead code - Removed declaration and usage [`route.ts`]
+- [x] [AI-Review][HIGH] DEBUG logging runs unconditionally - Wrapped in `process.env.DEBUG_CHAT_PERSISTENCE` check [`route.ts`, `actions.ts`]
+- [x] [AI-Review][HIGH] Type safety erosion - Documented tech debt: `any` retained due to complex SDK generics; added JSDoc explaining fields accessed [`shared.chat.ts`]
+
+### 🟡 MEDIUM (Should Fix)
+
+- [x] [AI-Review][MEDIUM] Empty catch blocks - Added `logger.debug()` calls [`formatters.ts`]
+- [x] [AI-Review][MEDIUM] `ai-insights-tool.ts` deletion - Documented in migration notes [`docs/MIGRATION-remove-create-chart.md`]
+- [x] [AI-Review][MEDIUM] Inconsistent logging - Replaced `console.log/error` with `logger` [`shared.chat.ts`]
+
+### 🟢 LOW (Nice to Have)
+
+- [x] [AI-Review][LOW] Test expectations outdated - Updated to 15 chart tools (added `create_ban_chart`) [`agent-tool-loading.test.ts`]
+- [x] [AI-Review][LOW] Typo fixed: `vercelAITooles` → `vercelAITools` [`route.ts`]
+- [x] [AI-Review][LOW] Added unit test for `buildResponseMessageFromStreamResult()` - 8 test cases [`tests/unit/chat/persistence.spec.ts`]
+
+---
+
 ## Changelog
 
 | Date | Change |
@@ -319,3 +344,4 @@ These can be addressed in a separate PR.
 | 2025-12-30 | **Cumulative Text Fallback** (commit `fdfc072`) - Handle empty step.text |
 | 2025-12-30 | **Node.js 24.x LTS** (commit `da7e243`) - Pin to current stable |
 | 2025-12-30 | Tech-spec finalized for code review |
+| 2025-12-30 | **Code Review Complete** - 4 HIGH, 3 MEDIUM, 3 LOW issues identified. Action items added. |

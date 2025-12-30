@@ -308,7 +308,7 @@ const handler = async (request: Request) => {
           !supportToolCall && buildToolCallUnsupportedModelSystemPrompt,
         );
 
-        const vercelAITooles = safe({ ...MCP_TOOLS, ...WORKFLOW_TOOLS })
+        const vercelAITools = safe({ ...MCP_TOOLS, ...WORKFLOW_TOOLS })
           .map((t) => {
             const bindingTools =
               toolChoice === "manual" ||
@@ -321,7 +321,7 @@ const handler = async (request: Request) => {
             };
           })
           .unwrap();
-        metadata.toolCount = Object.keys(vercelAITooles).length;
+        metadata.toolCount = Object.keys(vercelAITools).length;
 
         const allowedMcpTools = Object.values(allowedMcpServers ?? {})
           .map((t) => t.tools)
@@ -339,10 +339,6 @@ const handler = async (request: Request) => {
         );
         logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
 
-        // CRITICAL: Capture tool parts from UI stream for database persistence
-        // This ensures we store the SAME data the client receives (single source of truth)
-        const capturedToolParts: any[] = [];
-
         const result = streamText({
           model,
           system: systemPrompt,
@@ -353,7 +349,7 @@ const handler = async (request: Request) => {
             isEnabled: true,
           },
           maxRetries: 2,
-          tools: vercelAITooles,
+          tools: vercelAITools,
           stopWhen: stepCountIs(10),
           toolChoice: "auto",
           abortSignal: request.signal,
@@ -415,48 +411,21 @@ const handler = async (request: Request) => {
             // PHASE 1: MESSAGE PERSISTENCE (CRITICAL)
             // ============================================
             try {
-              logger.info("💾 Building response message from stream result");
-
-              // DEBUG: Log raw result.steps structure with correct SDK field names
-              logger.info("🔍 DEBUG: Raw result.steps structure", {
-                stepsCount: result.steps?.length || 0,
-                cumulativeText: result.text?.slice(0, 100),
-                steps: result.steps?.map((step: any, idx: number) => ({
-                  stepIndex: idx,
-                  hasText: !!step.text,
-                  textPreview: step.text?.slice(0, 50),
-                  toolCallsCount: step.toolCalls?.length || 0,
-                  toolResultsCount: step.toolResults?.length || 0,
-                  toolNames: step.toolCalls?.map((tc: any) => tc.toolName),
-                })),
-              });
-
               // ALWAYS use result.steps - it's the reliable source populated by streamText
-              // capturedToolParts has race condition issues (may not be populated when onFinish fires)
               const responseMessage = buildResponseMessageFromStreamResult(
                 result,
                 message,
               );
 
-              logger.info("💾 Built response from result.steps", {
-                stepsCount: result.steps?.length || 0,
-                partsCount: responseMessage.parts.length,
-                partTypes: responseMessage.parts.map((p: any) => p.type),
-                // DEBUG: Show full parts structure for tool parts
-                toolPartsDetail: responseMessage.parts
-                  .filter((p: any) => p.type?.startsWith("tool-"))
-                  .map((p: any) => ({
-                    type: p.type,
-                    toolCallId: p.toolCallId,
-                    hasInput: p.input !== undefined,
-                    inputEmpty:
-                      p.input &&
-                      typeof p.input === "object" &&
-                      Object.keys(p.input).length === 0,
-                    state: p.state,
-                    hasOutput: p.output !== undefined,
-                  })),
-              });
+              // Debug logging (enable via DEBUG_CHAT_PERSISTENCE=1)
+              if (process.env.DEBUG_CHAT_PERSISTENCE) {
+                logger.info("🔍 DEBUG: result.steps structure", {
+                  stepsCount: result.steps?.length || 0,
+                  cumulativeText: result.text?.slice(0, 100),
+                  partsCount: responseMessage.parts.length,
+                  partTypes: responseMessage.parts.map((p: any) => p.type),
+                });
+              }
 
               // FINAL DEFENSE: Guarantee at least one renderable part before persistence.
               const { message: finalResponseMessage, fallbackApplied } =
@@ -695,13 +664,13 @@ const handler = async (request: Request) => {
               errorMessage = `Tool not found: ${error.toolName}`;
               errorDetails = {
                 toolName: error.toolName,
-                availableTools: Object.keys(vercelAITooles),
+                availableTools: Object.keys(vercelAITools),
                 suggestion:
                   "Check if tool is properly registered in APP_DEFAULT_TOOL_KIT",
               };
               logger.error("🚨 NoSuchToolError:", {
                 toolName: error.toolName,
-                availableTools: Object.keys(vercelAITooles),
+                availableTools: Object.keys(vercelAITools),
                 message: error.message,
               });
             } else if (
@@ -807,29 +776,18 @@ const handler = async (request: Request) => {
         });
         result.consumeStream();
 
-        // Create UI message stream with part interception
+        // Create UI message stream with metadata handling
         const uiMessageStream = result.toUIMessageStream({
           messageMetadata: ({ part }) => {
-            // CRITICAL: Capture tool parts as they stream to client
-            // This is the SDK's public API - guaranteed complete data
-            if (part.type?.startsWith("tool-")) {
-              // Clone part to avoid reference issues during streaming
-              capturedToolParts.push({ ...part });
-
-              logger.info("🔧 Tool part captured from stream", {
+            // Debug logging for tool parts (enable via DEBUG_CHAT_PERSISTENCE=1)
+            if (
+              process.env.DEBUG_CHAT_PERSISTENCE &&
+              part.type?.startsWith("tool-")
+            ) {
+              logger.info("🔧 Tool part from stream", {
                 type: part.type,
                 toolCallId: (part as any).toolCallId,
                 state: (part as any).state,
-                hasInput: !!(part as any).input,
-                inputKeys:
-                  (part as any).input && typeof (part as any).input === "object"
-                    ? Object.keys((part as any).input)
-                    : [],
-                hasOutput: !!(part as any).output,
-                // DEBUG: Capture actual input for analysis
-                inputPreview:
-                  (part as any).input &&
-                  JSON.stringify((part as any).input).slice(0, 200),
               });
             }
 

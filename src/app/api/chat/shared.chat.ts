@@ -470,121 +470,70 @@ export const loadAppDefaultTools = (opt?: {
   mentions?: ChatMention[];
   allowedAppDefaultToolkit?: AppDefaultToolkit[];
 }) => {
-  console.log("🔍 loadAppDefaultTools called with:", {
-    mentionsLength: opt?.mentions?.length,
-    allowedAppDefaultToolkit: opt?.allowedAppDefaultToolkit,
-  });
+  const debugEnabled = !!process.env.DEBUG_CHAT_PERSISTENCE;
 
   // Add resilient import check before using APP_DEFAULT_TOOL_KIT
   try {
     if (!APP_DEFAULT_TOOL_KIT) {
-      console.error("🚨 APP_DEFAULT_TOOL_KIT is undefined!");
+      logger.error("APP_DEFAULT_TOOL_KIT is undefined!");
       return {};
     }
     if (!APP_DEFAULT_TOOL_KIT.artifacts) {
-      console.error("🚨 APP_DEFAULT_TOOL_KIT.artifacts is missing!");
-      console.log("Available toolkits:", Object.keys(APP_DEFAULT_TOOL_KIT));
+      logger.error("APP_DEFAULT_TOOL_KIT.artifacts is missing!", {
+        availableToolkits: Object.keys(APP_DEFAULT_TOOL_KIT),
+      });
     }
   } catch (error) {
-    console.error("🚨 Critical error accessing APP_DEFAULT_TOOL_KIT:", error);
+    logger.error("Critical error accessing APP_DEFAULT_TOOL_KIT", { error });
     return {};
   }
 
   return safe(APP_DEFAULT_TOOL_KIT)
     .map((tools) => {
-      console.log("🔍 APP_DEFAULT_TOOL_KIT loaded:", {
-        toolkitKeys: Object.keys(tools),
-        artifactsToolCount: Object.keys(tools.artifacts || {}).length,
-        webSearchToolCount: Object.keys(tools.webSearch || {}).length,
-        totalToolkits: Object.keys(tools).length,
-      });
       // CRITICAL FIX: Agent mentions are ADDITIVE, not restrictive
       // Agents should ALWAYS have access to all allowed tools
-      // Mentions specify which tools to use, not which tools to disable
-      if (opt?.mentions?.length) {
-        console.log(
-          "🔍 Agent mentions detected but keeping ALL tools (mentions are additive)",
-        );
-        // Don't filter - let agents have access to all tools
-        // The mentions guide tool usage, they don't restrict availability
-      }
       const allowedAppDefaultToolkit =
         opt?.allowedAppDefaultToolkit ?? Object.values(AppDefaultToolkit);
 
       const finalTools =
         allowedAppDefaultToolkit.reduce(
-          (acc, key) => {
-            console.log(`🔍 Loading toolkit: ${key}`, {
-              toolkitKey: key,
-              toolCount: Object.keys(tools[key] || {}).length,
-              toolNames: Object.keys(tools[key] || {}),
-            });
-            return { ...acc, ...tools[key] };
-          },
+          (acc, key) => ({ ...acc, ...tools[key] }),
           {} as Record<string, Tool>,
         ) || {};
 
-      // Enhanced debugging for chart tool registration
-      console.log("🔍 Final tool registry analysis:", {
-        totalToolCount: Object.keys(finalTools).length,
-        finalToolKeys: Object.keys(finalTools),
-        chartToolsFound: Object.keys(finalTools).filter((key) =>
-          key.includes("chart"),
-        ),
-        defaultToolNameEnum: Object.values(DefaultToolName),
-        chartToolsInEnum: Object.values(DefaultToolName).filter((name) =>
-          name.includes("chart"),
-        ),
-      });
+      // Debug logging (enable via DEBUG_CHAT_PERSISTENCE=1)
+      if (debugEnabled) {
+        const expectedChartTools = Object.values(DefaultToolName).filter(
+          (name) => name.includes("chart"),
+        );
+        const missingChartTools = expectedChartTools.filter(
+          (expected) =>
+            !Object.prototype.hasOwnProperty.call(finalTools, expected),
+        );
 
-      // Specific chart tool validation
-      const expectedChartTools = Object.values(DefaultToolName).filter((name) =>
-        name.includes("chart"),
-      );
-      const missingChartTools = expectedChartTools.filter(
-        (expected) =>
-          !Object.prototype.hasOwnProperty.call(finalTools, expected),
-      );
-      const extraChartTools = Object.keys(finalTools).filter(
-        (actual) =>
-          actual.includes("chart") &&
-          !expectedChartTools.includes(actual as DefaultToolName),
-      );
-
-      if (missingChartTools.length > 0) {
-        console.error("🚨 Missing chart tools:", missingChartTools);
+        logger.debug("Tool registry loaded", {
+          totalToolCount: Object.keys(finalTools).length,
+          chartToolsFound: Object.keys(finalTools).filter((key) =>
+            key.includes("chart"),
+          ).length,
+          missingChartTools:
+            missingChartTools.length > 0 ? missingChartTools : undefined,
+        });
       }
-      if (extraChartTools.length > 0) {
-        console.warn("⚠️ Extra chart tools (not in enum):", extraChartTools);
-      }
-
-      console.log("🔍 Chart tool registry status:", {
-        expectedCount: expectedChartTools.length,
-        actualCount: Object.keys(finalTools).filter((key) =>
-          key.includes("chart"),
-        ).length,
-        missing: missingChartTools,
-        extra: extraChartTools,
-        registrationComplete: missingChartTools.length === 0,
-      });
 
       return finalTools;
     })
     .ifFail((e) => {
-      // Enhanced error handling for tool loading failures
-      logger.error("🚨 APP_DEFAULT_TOOL_KIT Loading Failed:", {
+      logger.error("APP_DEFAULT_TOOL_KIT loading failed", {
         error: e.message,
         stack: e.stack,
         toolkitsRequested: opt?.allowedAppDefaultToolkit,
-        suggestion: "Check tool imports and registry consistency",
       });
-      console.error("🚨 APP_DEFAULT_TOOL_KIT Loading Failed:", e);
-      console.error("🚨 This causes agents to lose chart tools!");
 
       // For production: don't throw, return minimal tools to prevent complete failure
       if (process.env.NODE_ENV === "production") {
         logger.warn(
-          "🚨 Production mode: Returning empty tools instead of throwing",
+          "Production mode: Returning empty tools instead of throwing",
         );
         return {} as Record<string, Tool>;
       }
@@ -593,8 +542,7 @@ export const loadAppDefaultTools = (opt?: {
       throw e;
     })
     .orElse(() => {
-      logger.warn("⚠️ APP_DEFAULT_TOOL_KIT failed - returning empty tools");
-      console.warn("⚠️ APP_DEFAULT_TOOL_KIT failed - returning empty tools");
+      logger.warn("APP_DEFAULT_TOOL_KIT failed - returning empty tools");
       return {} as Record<string, Tool>;
     });
 };
@@ -731,15 +679,23 @@ export function buildAssistantErrorStub(
 }
 
 /**
- * Build UIMessage from streamText result for database persistence
- * Extracts text and tool parts from completed stream
+ * Build UIMessage from streamText result for database persistence.
+ * Extracts text and tool parts from completed stream.
  *
- * @param result - streamText result object with steps and content
+ * Note: Uses `any` because Vercel AI SDK's StreamTextResult<TOOLS, PARTIAL_OUTPUT>
+ * is a complex generic type that varies based on tool configuration.
+ *
+ * Fields accessed from result:
+ * - id?: string
+ * - text?: string (cumulative text fallback)
+ * - steps?: Array<{ text?, toolCalls[], toolResults[] }>
+ *
+ * @param result - streamText result object (StreamTextResult from 'ai' SDK)
  * @param originalMessage - Original user message for ID fallback
  * @returns UIMessage ready for database persistence
  */
 export function buildResponseMessageFromStreamResult(
-  result: any, // StreamTextResult from Vercel AI SDK
+  result: any,
   originalMessage: UIMessage,
 ): UIMessage {
   const parts: any[] = [];
@@ -752,13 +708,12 @@ export function buildResponseMessageFromStreamResult(
       if (step.toolCalls && Array.isArray(step.toolCalls)) {
         for (const toolCall of step.toolCalls) {
           // Note: Vercel AI SDK uses `input` not `args` for tool call parameters
-          const toolPart: any = {
+          parts.push({
             type: `tool-${toolCall.toolName}`,
             toolCallId: toolCall.toolCallId,
             input: toolCall.input ?? toolCall.args ?? {},
             state: "call",
-          };
-          parts.push(toolPart);
+          });
         }
       }
 
@@ -768,22 +723,16 @@ export function buildResponseMessageFromStreamResult(
         for (const toolResult of step.toolResults) {
           // Find the corresponding call part
           const callPart = parts.find(
-            (p) =>
-              typeof p === "object" &&
-              p.toolCallId &&
-              p.toolCallId === toolResult.toolCallId,
+            (p: any) => p.toolCallId === toolResult.toolCallId,
           );
 
           const outputValue = toolResult.output ?? toolResult.result;
-          const inputValue = toolResult.input;
+          const inputValue = toolResult.input ?? {};
 
           if (callPart) {
             callPart.state = "output-available";
             callPart.output = outputValue;
-            if (
-              inputValue &&
-              (!callPart.input || Object.keys(callPart.input).length === 0)
-            ) {
+            if (!callPart.input || Object.keys(callPart.input).length === 0) {
               callPart.input = inputValue;
             }
           } else {
@@ -791,7 +740,7 @@ export function buildResponseMessageFromStreamResult(
             parts.push({
               type: `tool-${toolResult.toolName}`,
               toolCallId: toolResult.toolCallId,
-              input: inputValue ?? {},
+              input: inputValue,
               state: "output-available",
               output: outputValue,
             });

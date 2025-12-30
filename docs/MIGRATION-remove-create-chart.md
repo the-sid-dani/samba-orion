@@ -119,6 +119,10 @@ create_bar_chart({
 **Removed Files:**
 - `src/lib/ai/tools/artifacts/create-chart-tool.ts`
 - `src/lib/ai/tools/artifacts/update-chart-tool.ts`
+- `src/lib/ai/tools/artifacts/ai-insights-tool.ts` *(removed Dec 2025)*
+  - **What it did:** Generic tool for AI-powered data analysis and pattern recognition
+  - **Why removed:** Functionality consolidated into individual chart tools - each now handles its own data interpretation via the `formatters.ts` pipeline
+  - **Migration:** No action needed - chart tools automatically provide insights in their output summaries
 
 **Updated Files:**
 - `src/lib/ai/tools/artifacts/index.ts` - Removed exports for generic tools

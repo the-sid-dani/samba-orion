@@ -402,10 +402,11 @@ describe("Agent Tool Loading Diagnostics", () => {
         "create_geographic_chart",
         "create_gauge_chart",
         "create_calendar_heatmap",
+        "create_ban_chart",
       ];
 
       // Verify we have the expected number of chart tools
-      expect(expectedChartTools.length).toBe(14); // 14 specialized chart tools
+      expect(expectedChartTools.length).toBe(15); // 15 specialized chart tools
 
       // Verify naming convention consistency
       expectedChartTools.forEach((toolName) => {

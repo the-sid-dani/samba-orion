@@ -132,6 +132,9 @@ BETTER_AUTH_SECRET=****
 
 # Optional
 EXA_API_KEY=****  # Web search
+
+# Debug (development only)
+DEBUG_CHAT_PERSISTENCE=1  # Verbose logging for chat/tool persistence
 ```
 
 ## Key Files

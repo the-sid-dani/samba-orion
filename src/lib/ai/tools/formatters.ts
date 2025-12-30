@@ -1,3 +1,5 @@
+import logger from "logger";
+
 export type FormatResult = {
   summaryForModel: string;
   structuredForUI?: unknown;
@@ -87,7 +89,8 @@ export function genericFormatter(result: any): FormatResult {
 
     // Primitive
     return { summaryForModel: clamp(String(result)), structuredForUI: result };
-  } catch (_e) {
+  } catch (err) {
+    logger.debug("genericFormatter failed, returning fallback", { err });
     return {
       summaryForModel: "Tool executed successfully.",
       structuredForUI: result,
@@ -127,7 +130,8 @@ export function exaFormatter(result: any): FormatResult {
       summaryForModel: clamp(lines || "No results."),
       structuredForUI: result,
     };
-  } catch {
+  } catch (err) {
+    logger.debug("exaFormatter failed, falling back to generic", { err });
     return genericFormatter(result);
   }
 }
@@ -147,7 +151,10 @@ export function chartTableFormatter(result: any): FormatResult {
     let msg = `${chartType} "${title}" with ${dataPoints} data points`;
     if (cols) msg += `\nColumns: ${cols}`;
     return { summaryForModel: clamp(msg), structuredForUI: result };
-  } catch {
+  } catch (err) {
+    logger.debug("chartTableFormatter failed, falling back to generic", {
+      err,
+    });
     return genericFormatter(result);
   }
 }
@@ -170,7 +177,8 @@ export function httpFormatter(result: any): FormatResult {
       preview ? `\nPreview: ${preview}` : ""
     }`;
     return { summaryForModel: clamp(msg), structuredForUI: result };
-  } catch {
+  } catch (err) {
+    logger.debug("httpFormatter failed, falling back to generic", { err });
     return genericFormatter(result);
   }
 }
@@ -183,7 +191,8 @@ export function codeFormatter(result: any): FormatResult {
     const stderr = result?.stderr ? clamp(String(result.stderr), 160) : "";
     const msg = `Process exited ${exit}${stdout ? `\nstdout: ${stdout}` : ""}${stderr ? `\nstderr: ${stderr}` : ""}`;
     return { summaryForModel: clamp(msg), structuredForUI: result };
-  } catch {
+  } catch (err) {
+    logger.debug("codeFormatter failed, falling back to generic", { err });
     return genericFormatter(result);
   }
 }
@@ -230,7 +239,11 @@ export function formatToolResult(toolName: string, result: any): FormatResult {
     const out = fn(result);
     out.summaryForModel = clamp(stripHtml(out.summaryForModel ?? ""));
     return out;
-  } catch {
+  } catch (err) {
+    logger.debug("formatToolResult failed, falling back to generic", {
+      toolName,
+      err,
+    });
     const out = genericFormatter(result);
     out.summaryForModel = clamp(stripHtml(out.summaryForModel ?? ""));
     return out;

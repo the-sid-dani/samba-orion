@@ -127,20 +127,21 @@ export async function selectThreadWithMessagesAction(threadId: string) {
     return { ...m, parts };
   });
 
-  // DEBUG: Log parts order when loading from DB
-  messages.forEach((m) => {
-    if (m.role === "assistant" && m.parts?.length > 1) {
-      logger.info("🔍 DEBUG: Parts order after load", {
-        messageId: m.id,
-        partsCount: m.parts.length,
-        partsOrder: m.parts.map((p: any, i: number) => ({
-          index: i,
-          type: p.type,
-          isToolPart: p.type?.startsWith("tool-"),
-        })),
-      });
-    }
-  });
+  // Debug logging (enable via DEBUG_CHAT_PERSISTENCE=1)
+  if (process.env.DEBUG_CHAT_PERSISTENCE) {
+    messages.forEach((m) => {
+      if (m.role === "assistant" && m.parts?.length > 1) {
+        logger.info("🔍 DEBUG: Parts order after load", {
+          messageId: m.id,
+          partsCount: m.parts.length,
+          partsOrder: m.parts.map((p: any, i: number) => ({
+            index: i,
+            type: p.type,
+          })),
+        });
+      }
+    });
+  }
 
   return { ...thread, messages };
 }

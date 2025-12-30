@@ -162,7 +162,7 @@
   },
   "packageManager": "pnpm@10.2.1",
   "engines": {
-    "node": "24.x"
+    "node": ">=20"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
