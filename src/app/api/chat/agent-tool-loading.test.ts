@@ -5,7 +5,7 @@ const mockArtifactsToolkit = {
   create_bar_chart: { description: "Create bar charts" },
   create_line_chart: { description: "Create line charts" },
   create_pie_chart: { description: "Create pie charts" },
-  create_table: { description: "Create data tables" },
+  createTable: { description: "Create data tables" },
 };
 
 const mockWebSearchToolkit = {
@@ -212,7 +212,7 @@ describe("Agent Tool Loading Diagnostics", () => {
       const partialToolKit = {
         webSearch: mockWebSearchToolkit,
         artifacts: {
-          create_table: { description: "Create data tables" },
+          createTable: { description: "Create data tables" },
           // Chart tools missing - simulating the current bug
         },
         http: { http: { description: "HTTP requests" } },
