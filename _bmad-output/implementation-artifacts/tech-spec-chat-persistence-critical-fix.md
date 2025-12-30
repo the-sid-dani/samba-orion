@@ -193,14 +193,42 @@ logger.info("💾 Built response from result.steps", {
 
 The hybrid approach (preferring `capturedToolParts` if available) was still vulnerable to timing issues. Using `result.steps` exclusively eliminates the race condition.
 
+### Additional Bug: Wrong SDK Field Names (Commit `d586c88`)
+
+After the first fix, tool calls were being persisted but showing:
+- **"Tool did not provide structured input"** notice
+- **Missing response/output**
+
+**Root Cause:** Code was using wrong field names from the Vercel AI SDK:
+
+| Object | Wrong Field | Correct Field |
+|--------|-------------|---------------|
+| `toolCall` | `.args` | `.input` |
+| `toolResult` | `.result` | `.output` |
+
+**Fix:**
+```typescript
+// BEFORE (broken)
+input: toolCall.args || {},
+output: toolResult.result;
+
+// AFTER (fixed)
+input: toolCall.input ?? toolCall.args ?? {},  // SDK uses `input`
+output: toolResult.output ?? toolResult.result; // SDK uses `output`
+```
+
+**Bonus:** `toolResult` also includes `.input`, so if the tool call wasn't captured, we can still get the input from the result.
+
 ### Impact Summary
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Lines changed | - | -24 (net reduction) |
+| Lines changed | - | -24 (net reduction), +35 (field fix) |
 | MCP tool calls persisted | ❌ Skipped if no args | ✅ Always persisted |
 | Orphaned tool results | ❌ Discarded | ✅ Preserved |
 | Race condition risk | High (`capturedToolParts`) | None (`result.steps`) |
+| Tool call input | ❌ Always empty | ✅ Correctly captured |
+| Tool result output | ❌ Always undefined | ✅ Correctly captured |
 
 ### Verification Steps
 
@@ -511,4 +539,5 @@ The hybrid approach (preferring `capturedToolParts` if available) was still vuln
 | 2025-12-30 | **Code Review (Post-Implementation)**: TypeScript errors resolved (commit 3e23f7a). Test fixes applied: snake_case/camelCase mismatch in agent-tool-loading.test.ts, fake timer issues in tool-execution-wrapper.test.ts. Skipped pre-existing broken tests (MCP mock infrastructure debt). Final: 309 tests pass, 23 skipped. All ACs met. |
 | 2025-12-30 | **Next.js Security Patch**: Upgraded `next` 15.3.2 → 15.3.8 to patch CVE-2025-55182, CVE-2025-66478 (RCE vulnerabilities in React Server Components). Commit `187d336`. |
 | 2025-12-30 | **Tool Call Persistence Fix (commit `f61fb60`)**: Root cause identified - overly aggressive filters in `buildResponseMessageFromStreamResult()` were skipping valid MCP tool calls (empty args) and discarding orphaned tool results. Fix: (1) Include ALL tool calls for persistence regardless of args, (2) Restore fallback creation for tool results without matching calls, (3) Use `result.steps` exclusively to avoid `capturedToolParts` race condition. Net -24 lines. See "Critical Runtime Bug" section above for full analysis. |
+| 2025-12-30 | **SDK Field Names Fix (commit `d586c88`)**: Second root cause found - code was using wrong Vercel AI SDK field names. SDK uses `toolCall.input` (not `.args`) and `toolResult.output` (not `.result`). This explained why input showed "Tool did not provide structured input" and output was missing. |
 
