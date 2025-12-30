@@ -34,7 +34,6 @@ export enum DefaultToolName {
   CreateCalendarHeatmap = "create_calendar_heatmap",
   // Specialized display tools
   CreateBANChart = "create_ban_chart",
-  // CreateAIInsights = "create_ai_insights", // COMMENTED OUT - causing 70% pause issues
 }
 
 // Type constraints for compile-time validation

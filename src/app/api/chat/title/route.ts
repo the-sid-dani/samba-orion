@@ -3,7 +3,6 @@ import { observe } from "@langfuse/tracing";
 import { after } from "next/server";
 
 import { langfuseSpanProcessor } from "@/instrumentation";
-import { langfuse } from "@/lib/observability/langfuse-client";
 import { customModelProvider } from "lib/ai/models";
 import { CREATE_THREAD_TITLE_PROMPT } from "lib/ai/prompts";
 import globalLogger from "logger";
@@ -51,8 +50,8 @@ const handler = async (request: Request) => {
         isEnabled: true,
         metadata: {
           threadId,
-          provider: chatModel?.provider,
-          model: chatModel?.model,
+          provider: chatModel?.provider ?? "unknown",
+          model: chatModel?.model ?? "unknown",
           environment,
           operation: "title-generation",
         },

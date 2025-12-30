@@ -2,7 +2,6 @@ import { tool as createTool } from "ai";
 import { z } from "zod";
 import { generateUUID } from "../../../utils";
 import logger from "../../../logger";
-import { CHART_VALIDATORS } from "../../../validation/chart-data-validator";
 import { DefaultToolName } from "../index";
 import { withTimeout } from "./tool-execution-wrapper";
 
@@ -69,9 +68,15 @@ export const pieChartArtifactTool = createTool({
 async function* createPieChartGenerator({
   title,
   data,
-  description,
-  unit,
-  canvasName,
+  description = "",
+  unit = "",
+  canvasName = "",
+}: {
+  title: string;
+  data: { label: string; value: number }[];
+  description?: string;
+  unit?: string;
+  canvasName?: string;
 }) {
   try {
     logger.info(`Creating pie chart artifact: ${title}`);
@@ -106,8 +111,7 @@ async function* createPieChartGenerator({
       throw new Error("Pie chart total cannot be zero");
     }
 
-    // Get slice labels for metadata
-    const _sliceLabels = data.map((slice) => slice.label);
+    // Data validated - use length for metadata tracking
 
     // Create the chart artifact content that matches PieChart component props
     const chartContent = {

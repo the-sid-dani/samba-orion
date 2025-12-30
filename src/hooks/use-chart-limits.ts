@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useMemoryMonitor, MemoryPressure } from "./use-memory-monitor";
+import { useMemoryMonitor } from "./use-memory-monitor";
 
 // Chart metadata for tracking
 export interface ChartInfo {
@@ -460,13 +460,11 @@ export function useChartLimits(config: Partial<ChartLimitsConfig> = {}) {
   }, [updateDynamicLimits]);
 
   return {
-    // State
-    chartCount,
-    maxChartsAllowed: effectiveMaxCharts,
+    // State (from getChartLimitsState which includes chartCount, maxChartsAllowed)
     memoryPressure,
     charts: Array.from(charts.values()),
 
-    // Derived state
+    // Derived state (includes chartCount, maxChartsAllowed)
     ...getChartLimitsState(),
 
     // Actions

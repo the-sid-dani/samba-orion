@@ -1,7 +1,6 @@
 "use client";
 
 import { AdminUsersTable } from "./admin-users-table";
-import { AdminUsersTableProps } from "@/types/admin";
 
 interface Props {
   users: Array<{
@@ -31,6 +30,7 @@ export function AdminUsersList({ users, currentUserId }: Props) {
       <AdminUsersTable
         users={users.map((user) => ({ ...user, name: user.name || "Unknown" }))}
         currentUserId={currentUserId}
+        // onRoleUpdate handler not passed - uses default behavior
       />
     </div>
   );

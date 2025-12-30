@@ -10,7 +10,6 @@ import { observe } from "@langfuse/tracing";
 import { after } from "next/server";
 
 import { langfuseSpanProcessor } from "@/instrumentation";
-import { langfuse } from "@/lib/observability/langfuse-client";
 import { customModelProvider } from "lib/ai/models";
 import globalLogger from "logger";
 import { buildUserSystemPrompt } from "lib/ai/prompts";
@@ -59,8 +58,8 @@ const handler = async (request: Request) => {
         isEnabled: true,
         metadata: {
           userId: session.user.id,
-          provider: chatModel?.provider,
-          model: chatModel?.model,
+          provider: chatModel?.provider ?? "unknown",
+          model: chatModel?.model ?? "unknown",
           environment,
           operation: "temporary-chat",
           hasInstructions: !!instructions,

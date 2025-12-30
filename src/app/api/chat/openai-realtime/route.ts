@@ -8,6 +8,7 @@ import {
   mergeSystemPrompt,
   loadAppDefaultTools,
 } from "../shared.chat";
+import { AppDefaultToolkit } from "lib/ai/tools";
 import {
   buildMcpServerCustomizationsSystemPrompt,
   buildSpeechSystemPrompt,
@@ -102,8 +103,14 @@ export async function POST(request: NextRequest) {
     );
 
     // Load app default tools (web search, charts, etc.)
+    // Coerce string[] to AppDefaultToolkit[] by filtering valid enum values
+    const validToolkits = (allowedAppDefaultToolkit ?? []).filter(
+      (v): v is AppDefaultToolkit =>
+        Object.values(AppDefaultToolkit).includes(v as AppDefaultToolkit),
+    );
     const appDefaultTools = await loadAppDefaultTools({
-      allowedAppDefaultToolkit,
+      allowedAppDefaultToolkit:
+        validToolkits.length > 0 ? validToolkits : undefined,
     });
 
     const appToolsForOpenAI = Object.entries(appDefaultTools).map(

@@ -2,7 +2,6 @@ import { tool as createTool } from "ai";
 import { z } from "zod";
 import logger from "../../../logger";
 import { generateUUID } from "../../../utils";
-import { validateBasicChartData } from "../../../validation/chart-data-validator";
 
 // Dashboard orchestration schema - describes the dashboard plan
 const dashboardPlanSchema = z.object({

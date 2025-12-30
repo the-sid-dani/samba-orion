@@ -95,7 +95,11 @@ export function ComposedChart(props: ComposedChartProps) {
 
   // Organize series by chart type for rendering
   const seriesByType = React.useMemo(() => {
-    const grouped = { bar: new Set(), line: new Set(), area: new Set() };
+    const grouped = {
+      bar: new Set<string>(),
+      line: new Set<string>(),
+      area: new Set<string>(),
+    };
 
     deduplicateData.forEach((point) => {
       point.series.forEach((series) => {

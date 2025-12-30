@@ -3,6 +3,11 @@
 import dynamic from "next/dynamic";
 import * as React from "react";
 import { createPortal } from "react-dom";
+import type {
+  ComposableMapProps,
+  GeographiesProps,
+  GeographyProps,
+} from "react-simple-maps";
 
 import {
   Card,
@@ -17,18 +22,18 @@ import { generateUniqueKey } from "lib/utils";
 import { JsonViewPopup } from "../json-view-popup";
 import { sanitizeCssVariableName } from "./shared.tool-invocation";
 
-// Dynamic import for react-simple-maps to avoid SSR issues
-const ComposableMap = dynamic(
+// Dynamic import for react-simple-maps with proper typing to avoid SSR issues
+const ComposableMap = dynamic<ComposableMapProps>(
   () => import("react-simple-maps").then((mod) => mod.ComposableMap),
   { ssr: false },
 );
 
-const Geographies = dynamic(
+const Geographies = dynamic<GeographiesProps>(
   () => import("react-simple-maps").then((mod) => mod.Geographies),
   { ssr: false },
 );
 
-const Geography = dynamic(
+const Geography = dynamic<GeographyProps>(
   () => import("react-simple-maps").then((mod) => mod.Geography),
   { ssr: false },
 );

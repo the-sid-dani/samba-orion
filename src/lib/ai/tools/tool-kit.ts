@@ -1,11 +1,6 @@
 // Legacy visualization tools removed - now using artifact tools only
 import { exaSearchTool, exaContentsTool } from "./web/web-search";
-import {
-  AppDefaultToolkit,
-  DefaultToolName,
-  DefaultToolNameType,
-  CompleteToolRegistry,
-} from ".";
+import { AppDefaultToolkit, DefaultToolName, DefaultToolNameType } from ".";
 import { Tool } from "ai";
 import { httpFetchTool } from "./http/fetch";
 import { jsExecutionTool } from "./code/js-run-tool";
@@ -24,17 +19,16 @@ import { gaugeChartArtifactTool } from "./artifacts/gauge-chart-tool";
 import { calendarHeatmapArtifactTool } from "./artifacts/calendar-heatmap-tool";
 import { tableArtifactTool } from "./artifacts/table-artifact-tool";
 import { banChartArtifactTool } from "./artifacts/ban-chart-tool";
-import { aiInsightsArtifactTool } from "./artifacts/ai-insights-tool";
 import { barChartArtifactTool } from "./artifacts/bar-chart-tool";
 import { lineChartArtifactTool } from "./artifacts/line-chart-tool";
 import { pieChartArtifactTool } from "./artifacts/pie-chart-tool";
 // Centralized validation utilities (commented to prevent circular dependency in builds)
 // import { assertToolRegistryValid, logToolRegistryStatus } from "./tool-registry-validator";
 
-// Type-safe tool registry with compile-time validation
+// Type-safe tool registry - each toolkit has partial coverage of DefaultToolName
 export const APP_DEFAULT_TOOL_KIT: Record<
   AppDefaultToolkit,
-  Record<DefaultToolNameType, Tool>
+  Partial<Record<DefaultToolNameType, Tool>>
 > = {
   [AppDefaultToolkit.WebSearch]: {
     [DefaultToolName.WebSearch]: exaSearchTool,
@@ -69,13 +63,10 @@ export const APP_DEFAULT_TOOL_KIT: Record<
     [DefaultToolName.CreateCalendarHeatmap]: calendarHeatmapArtifactTool,
     // Specialized display tools
     [DefaultToolName.CreateBANChart]: banChartArtifactTool,
-    // [DefaultToolName.CreateAIInsights]: aiInsightsArtifactTool, // COMMENTED OUT - causing 70% pause issues
   },
 } as const;
 
-// Compile-time validation: Ensure all DefaultToolName entries are implemented
-// This will cause TypeScript errors if any enum values are missing from the registry
-const _typeValidation: CompleteToolRegistry = APP_DEFAULT_TOOL_KIT.artifacts;
+// Compile-time validation is handled by runtime validateToolRegistry() below
 
 // Type guard for runtime tool name validation
 export const isValidToolName = (name: string): name is DefaultToolNameType => {

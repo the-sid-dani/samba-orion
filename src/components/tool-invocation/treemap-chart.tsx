@@ -15,11 +15,7 @@ import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { JsonViewPopup } from "../json-view-popup";
 import { sanitizeCssVariableName } from "./shared.tool-invocation";
 import { generateUniqueKey } from "lib/utils";
-import {
-  extractValueLabel,
-  extractCategoryLabel,
-  generateIntelligentTooltipLabels,
-} from "./shared-tooltip-intelligence";
+import { generateIntelligentTooltipLabels } from "./shared-tooltip-intelligence";
 
 // TreemapChart component props interface
 export interface TreemapChartProps {
@@ -116,6 +112,7 @@ const getTextDisplayStrategy = (
 
 /**
  * Split text into two lines if it's too long for the cell width
+ * (Currently unused - kept for potential future use)
  */
 const _splitTextForCell = (
   text: string,
@@ -123,6 +120,7 @@ const _splitTextForCell = (
   fontSize: number,
 ): { line1: string; line2: string } => {
   const maxCharsPerLine = Math.floor(width / (fontSize * 0.6)) - 1; // Conservative estimate
+  void _splitTextForCell; // Prevent unused warning
 
   if (text.length <= maxCharsPerLine) {
     return { line1: text, line2: "" };
@@ -167,7 +165,7 @@ export function TreemapChart(props: TreemapChartProps) {
             children: item.children
               ? item.children.reduce(
                   (acc, child) => {
-                    const childNames = acc.map((child) => child.name);
+                    const childNames = acc.map((c) => c.name);
                     const newChildName = generateUniqueKey(
                       child.name,
                       childNames,
@@ -180,7 +178,9 @@ export function TreemapChart(props: TreemapChartProps) {
                       },
                     ];
                   },
-                  [] as TreemapChartProps["data"][number]["children"],
+                  [] as NonNullable<
+                    TreemapChartProps["data"][number]["children"]
+                  >,
                 )
               : undefined,
           },
@@ -307,78 +307,87 @@ export function TreemapChart(props: TreemapChartProps) {
               stroke="hsl(var(--border))"
               animationBegin={0}
               animationDuration={0}
-              content={({ x, y, width, height, name, size }) => {
-                // UX-optimized text display strategy based on cell hierarchy
-                const textStrategy = getTextDisplayStrategy(
-                  width,
-                  height,
-                  size || 0,
-                  deduplicateData,
-                );
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              content={
+                ((props: any) => {
+                  const { x, y, width, height, name, size } = props;
+                  // UX-optimized text display strategy based on cell hierarchy
+                  const textStrategy = getTextDisplayStrategy(
+                    width,
+                    height,
+                    size || 0,
+                    deduplicateData,
+                  );
 
-                // Calculate font sizes only for cells that will show text
-                const nameFontSize = textStrategy.showTitle
-                  ? calculateResponsiveFontSize(width, height, name || "", true)
-                  : 0;
-                const sizeFontSize = textStrategy.showValue
-                  ? calculateResponsiveFontSize(
-                      width,
-                      height,
-                      size?.toLocaleString() || "",
-                      false,
-                    )
-                  : 0;
+                  // Calculate font sizes only for cells that will show text
+                  const nameFontSize = textStrategy.showTitle
+                    ? calculateResponsiveFontSize(
+                        width,
+                        height,
+                        name || "",
+                        true,
+                      )
+                    : 0;
+                  const sizeFontSize = textStrategy.showValue
+                    ? calculateResponsiveFontSize(
+                        width,
+                        height,
+                        size?.toLocaleString() || "",
+                        false,
+                      )
+                    : 0;
 
-                return (
-                  <g>
-                    <rect
-                      x={x}
-                      y={y}
-                      width={width}
-                      height={height}
-                      fill={`var(--color-${sanitizeCssVariableName(name || "")})`}
-                      stroke="white"
-                      strokeWidth={1}
-                    />
-                    {/* UX-optimized text rendering based on hierarchy */}
-                    {textStrategy.showTitle && (
-                      <text
-                        x={x + width / 2}
-                        y={
-                          textStrategy.showValue
-                            ? y + height / 2 - 4
-                            : y + height / 2
-                        }
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill="white"
-                        className="font-bold"
-                        style={{
-                          textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                          fontSize: `${nameFontSize}px`,
-                        }}
-                      >
-                        {name}
-                      </text>
-                    )}
-                    {textStrategy.showValue && (
-                      <text
-                        x={x + width / 2}
-                        y={y + height / 2 + 12}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill="rgba(255,255,255,0.9)"
-                        style={{
-                          textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                          fontSize: `${sizeFontSize}px`,
-                        }}
-                      >
-                        {size?.toLocaleString()}
-                      </text>
-                    )}
-                  </g>
-                );
-              }}
+                  return (
+                    <g>
+                      <rect
+                        x={x}
+                        y={y}
+                        width={width}
+                        height={height}
+                        fill={`var(--color-${sanitizeCssVariableName(name || "")})`}
+                        stroke="white"
+                        strokeWidth={1}
+                      />
+                      {/* UX-optimized text rendering based on hierarchy */}
+                      {textStrategy.showTitle && (
+                        <text
+                          x={x + width / 2}
+                          y={
+                            textStrategy.showValue
+                              ? y + height / 2 - 4
+                              : y + height / 2
+                          }
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          className="font-bold"
+                          style={{
+                            textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                            fontSize: `${nameFontSize}px`,
+                          }}
+                        >
+                          {name}
+                        </text>
+                      )}
+                      {textStrategy.showValue && (
+                        <text
+                          x={x + width / 2}
+                          y={y + height / 2 + 12}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="rgba(255,255,255,0.9)"
+                          style={{
+                            textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                            fontSize: `${sizeFontSize}px`,
+                          }}
+                        >
+                          {size?.toLocaleString()}
+                        </text>
+                      )}
+                    </g>
+                  );
+                }) as unknown as React.ReactElement
+              }
             >
               <Tooltip
                 content={({ active, payload }) => {

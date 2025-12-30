@@ -1,6 +1,6 @@
-import { Agent } from "../../types/agent";
-import { UserPreferences } from "../../types/user";
-import { MCPServerConfig } from "../../types/mcp";
+import { Agent } from "app-types/agent";
+import { UserPreferences } from "app-types/user";
+import { MCPServerConfig } from "app-types/mcp";
 import { sql } from "drizzle-orm";
 import {
   pgTable,
@@ -12,12 +12,11 @@ import {
   unique,
   varchar,
   index,
-  integer,
 } from "drizzle-orm/pg-core";
 import { isNotNull } from "drizzle-orm";
-import { DBWorkflow, DBEdge, DBNode } from "../../types/workflow";
+import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
 import { UIMessage } from "ai";
-import { ChatMetadata } from "../../types/chat";
+import { ChatMetadata } from "app-types/chat";
 
 export const ChatThreadSchema = pgTable("chat_thread", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -34,7 +33,7 @@ export const ChatMessageSchema = pgTable("chat_message", {
     .notNull()
     .references(() => ChatThreadSchema.id),
   role: text("role").notNull().$type<UIMessage["role"]>(),
-  parts: json("parts").notNull().array().$type<UIMessage["parts"]>(),
+  parts: json("parts").notNull().$type<UIMessage["parts"]>(),
   metadata: json("metadata").$type<ChatMetadata>(),
   createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });

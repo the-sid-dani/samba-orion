@@ -14,7 +14,6 @@ import {
   AreaChart as AreaChartIcon,
   Clock,
   Hash,
-  Lightbulb,
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "lib/utils";
@@ -35,7 +34,6 @@ import { GaugeChart } from "./tool-invocation/gauge-chart";
 import { CalendarHeatmap } from "./tool-invocation/calendar-heatmap";
 import { InteractiveTable } from "./tool-invocation/interactive-table";
 import { BANChart } from "./tool-invocation/ban-chart";
-import { AIInsights } from "./tool-invocation/ai-insights";
 
 interface CanvasArtifact {
   id: string;
@@ -50,6 +48,7 @@ interface CanvasArtifact {
     dataPoints?: number;
     charts?: number;
     lastUpdated?: string;
+    toolName?: string;
   };
 }
 
@@ -116,8 +115,6 @@ function LoadingPlaceholder({ artifact }: { artifact: CanvasArtifact }) {
         return <AreaChartIcon className="h-5 w-5 text-primary" />;
       case "ban":
         return <Hash className="h-5 w-5 text-primary" />;
-      case "insights":
-        return <Lightbulb className="h-5 w-5 text-primary" />;
       default:
         return <BarChart3 className="h-5 w-5 text-primary" />;
     }
@@ -367,9 +364,6 @@ function ChartRenderer({ artifact }: { artifact: CanvasArtifact }) {
       case "ban":
       case "ban-chart":
         return <BANChart {...chartProps} />;
-      case "insights":
-      case "ai-insights":
-        return <AIInsights {...chartProps} />;
       default:
         // Fallback to bar chart for unknown types
         console.warn(

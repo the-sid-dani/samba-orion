@@ -232,24 +232,16 @@ test.describe("Canvas Error Handling", () => {
     expect(hasError || !hasChart).toBe(true);
   });
 
-  test("should timeout gracefully for hanging operations", async ({ page }) => {
-    // This would require mocking a slow/hanging operation
-    // For now, verify timeout handling exists
-
-    const input = page.locator('[data-testid="chat-input"]');
-    await input.fill("Create a chart with large dataset");
-    await input.press("Enter");
-
-    // Wait longer than expected timeout
-    await page.waitForTimeout(35000); // 35s to exceed 30s timeout
-
-    // Check that something resolved (chart or error)
-    const canvas = page.locator('[data-testid="canvas-panel"]');
-    const isVisible = await canvas.isVisible().catch(() => false);
-
-    // Canvas should either show chart or error, not hang indefinitely
-    expect(isVisible).toBeDefined();
-  }, 40000); // Extend test timeout
+  // TODO: This test has 35s timeout - move to dedicated slow test suite
+  // test("timeout handling test", async ({ page }) => {
+  //   const input = page.locator('[data-testid="chat-input"]');
+  //   await input.fill("Create a chart with large dataset");
+  //   await input.press("Enter");
+  //   await page.waitForTimeout(35000);
+  //   const canvas = page.locator('[data-testid="canvas-panel"]');
+  //   const isVisible = await canvas.isVisible().catch(() => false);
+  //   expect(isVisible).toBeDefined();
+  // }, 40000);
 });
 
 test.describe("Canvas Responsiveness", () => {

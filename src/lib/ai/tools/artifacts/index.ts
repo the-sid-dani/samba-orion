@@ -26,7 +26,6 @@ import { sankeyChartArtifactTool } from "./sankey-chart-tool";
 import { scatterChartArtifactTool } from "./scatter-chart-tool";
 import { treemapChartArtifactTool } from "./treemap-chart-tool";
 import { banChartArtifactTool } from "./ban-chart-tool";
-import { aiInsightsArtifactTool } from "./ai-insights-tool";
 
 export {
   barChartArtifactTool,
@@ -46,7 +45,6 @@ export {
   scatterChartArtifactTool,
   treemapChartArtifactTool,
   banChartArtifactTool,
-  aiInsightsArtifactTool,
 };
 
 // Tool collection for easy integration
@@ -68,7 +66,6 @@ export const chartArtifactTools = {
   createScatterChart: scatterChartArtifactTool,
   createTreemapChart: treemapChartArtifactTool,
   createBANChart: banChartArtifactTool,
-  createAIInsights: aiInsightsArtifactTool,
 } as const;
 
 // Tool names for referencing in configurations
@@ -90,5 +87,4 @@ export const ChartArtifactToolNames = {
   CreateScatterChart: "create_scatter_chart",
   CreateTreemapChart: "create_treemap_chart",
   CreateBANChart: "create_ban_chart",
-  CreateAIInsights: "create_ai_insights",
 } as const;

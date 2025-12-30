@@ -284,24 +284,6 @@ export const banChartDataSchema = z.object({
   description: chartDescription,
 });
 
-// AI Insights Schema
-export const aiInsightsDataSchema = z.object({
-  title: chartTitle,
-  prompt: z.string().min(1).max(1000).describe("Analysis prompt or context"),
-  canvasData: z.any().optional().describe("Canvas data to analyze"),
-  insights: z
-    .string()
-    .min(1)
-    .max(5000)
-    .optional()
-    .describe("Pre-generated insights (up to 5000 chars)"),
-  severity: z
-    .enum(["info", "warning", "success", "error"])
-    .default("info")
-    .describe("Insight severity level"),
-  description: chartDescription,
-});
-
 // Common validation result types
 export type ValidationResult<T> =
   | {

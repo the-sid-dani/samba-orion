@@ -53,7 +53,7 @@ export function useMemoryMonitor(options: MemoryMonitorOptions = {}) {
   const [memoryPressure, setMemoryPressure] =
     useState<MemoryPressure>("normal");
   const [isSupported, setIsSupported] = useState<boolean>(false);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const chartCountRef = useRef<number>(0);
 
   // Check for modern memory monitoring support

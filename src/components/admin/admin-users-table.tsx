@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useMemo } from "react";
-import { AdminUsersTableProps, AdminUserTableRow } from "@/types/admin";
+import { AdminUserTableRow } from "@/types/admin";
 import { ArrowDownUp, Eye, Crown, Settings } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "ui/card";
@@ -139,10 +139,15 @@ function UserRoleDropdown({
 
 interface AdminUsersTableProps {
   users: AdminUserTableRow[];
+  currentUserId?: string;
   onRoleUpdate?: (userId: string, newRole: "admin" | "user") => Promise<void>;
 }
 
-export function AdminUsersTable({ users, onRoleUpdate }: AdminUsersTableProps) {
+export function AdminUsersTable({
+  users,
+  currentUserId: _currentUserId,
+  onRoleUpdate,
+}: AdminUsersTableProps) {
   // State management
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState<string | null>("name");

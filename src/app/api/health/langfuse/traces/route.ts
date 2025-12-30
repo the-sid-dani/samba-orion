@@ -51,7 +51,7 @@ export async function GET() {
 
     // Test flush capability
     let flushStatus = "unknown";
-    let flushError = null;
+    let flushError: string | null = null;
     try {
       await langfuseSpanProcessor.forceFlush();
       flushStatus = "success";
@@ -109,7 +109,7 @@ export async function GET() {
       flushStatus === "success";
 
     // Warning conditions
-    const warnings = [];
+    const warnings: string[] = [];
     if (timeSinceLastTrace && timeSinceLastTrace > 300) {
       warnings.push(
         `No traces sent in last ${Math.floor(timeSinceLastTrace / 60)} minutes`,

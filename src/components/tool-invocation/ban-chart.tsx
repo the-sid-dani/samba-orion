@@ -55,7 +55,6 @@ export function BANChart(props: BANChartProps) {
 
     const isPositive = trend.direction === "up";
     const isNegative = trend.direction === "down";
-    const _isNeutral = trend.direction === "neutral";
 
     return {
       icon: isPositive ? TrendingUp : isNegative ? TrendingDown : Minus,

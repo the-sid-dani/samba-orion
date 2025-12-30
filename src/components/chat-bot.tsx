@@ -592,7 +592,6 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
       "create_pie_chart",
       "createTable", // FIXED: camelCase
       "create_ban_chart",
-      // "create_ai_insights", // COMMENTED OUT - causing 70% pause issues
     ];
 
     // Process ALL assistant messages (not just last one)
@@ -855,7 +854,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
   }, []);
 
   // HARDENED PRODUCTION FIX: Tool-based Canvas processing with race condition protection
-  const processingDebounceRef = useRef<NodeJS.Timeout>();
+  const processingDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     // Wait for initialization before processing new messages
@@ -905,7 +904,6 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
           "createTable", // FIXED: camelCase
           // Specialized display tools
           "create_ban_chart",
-          // "create_ai_insights", // COMMENTED OUT - causing 70% pause issues
         ];
 
         const chartTools = lastMessage.parts.filter(
@@ -915,10 +913,8 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
 
         console.log("📊 ChatBot Tool Debug: Found chart/table tools", {
           toolCount: chartTools.length,
-          tools: chartTools.map((t) => ({
-            name: getToolName(t),
-            hasOutput: isToolUIPart(t),
-          })),
+          // chartTools already filtered by isToolUIPart, safe to get names
+          tools: chartTools.length,
         });
 
         // Open Canvas immediately when chart/table tools are detected (unless user closed it)

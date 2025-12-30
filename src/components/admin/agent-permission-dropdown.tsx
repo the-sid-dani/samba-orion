@@ -18,7 +18,7 @@ import {
 } from "ui/dropdown-menu";
 import { Search, Users, Crown, Check, X, ChevronDown } from "lucide-react";
 
-import { AdminAgentTableRow, User, AgentPermission } from "@/types/admin";
+import { AdminAgentTableRow, User } from "@/types/admin";
 
 interface AgentPermissionDropdownProps {
   agent: AdminAgentTableRow;
@@ -39,14 +39,23 @@ export function AgentPermissionDropdown({
 
   // Local state for optimistic updates
   const [localVisibility, setLocalVisibility] = useState<
-    "private" | "admin-all" | "admin-selective" | "admin-all"
-  >(agent.visibility);
+    "private" | "admin-all" | "admin-selective"
+  >(
+    agent.visibility === "readonly" || agent.visibility === "public"
+      ? "private"
+      : agent.visibility,
+  );
   const [localSelectedUserIds, setLocalSelectedUserIds] = useState<string[]>(
     agent.permissions.map((p) => p.userId),
   );
 
   useEffect(() => {
-    setLocalVisibility(agent.visibility);
+    // Map visibility to only allowed local states
+    const mappedVisibility =
+      agent.visibility === "readonly" || agent.visibility === "public"
+        ? "private"
+        : agent.visibility;
+    setLocalVisibility(mappedVisibility);
     setLocalSelectedUserIds(agent.permissions.map((p) => p.userId));
   }, [agent.visibility, agent.permissions]);
 

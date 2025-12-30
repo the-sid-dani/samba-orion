@@ -35,7 +35,6 @@ const VISIBILITY_ICONS = {
   readonly: Eye,
   public: Globe,
   "admin-all": Crown,
-  "admin-all": Crown,
   "admin-selective": Crown,
 } as const;
 
@@ -50,10 +49,6 @@ const VISIBILITY_CONFIG = {
       description: "Agent.readOnlyDescription",
     },
     public: { label: "Agent.public", description: "Agent.publicDescription" },
-    "admin-all": {
-      label: "Agent.adminShared",
-      description: "Agent.adminSharedDescription",
-    },
     "admin-all": {
       label: "Agent.adminAll",
       description: "Agent.adminAllDescription",

@@ -8,9 +8,7 @@
 import {
   sanitizeChartTitle,
   sanitizeChartLabel,
-  sanitizeChartDescription,
   XSS_TEST_VECTORS,
-  SECURITY_TEST_UTILS,
 } from "./xss-prevention";
 import { CHART_VALIDATORS } from "./chart-data-validator";
 

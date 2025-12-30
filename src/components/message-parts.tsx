@@ -721,16 +721,17 @@ const loading = memo(function Loading() {
   );
 });
 
-const _InteractiveTable = dynamic(
-  () =>
-    import("./tool-invocation/interactive-table").then(
-      (mod) => mod.InteractiveTable,
-    ),
-  {
-    ssr: false,
-    loading,
-  },
-);
+// Interactive table dynamic import - kept for future use
+// const InteractiveTable = dynamic(
+//   () =>
+//     import("./tool-invocation/interactive-table").then(
+//       (mod) => mod.InteractiveTable,
+//     ),
+//   {
+//     ssr: false,
+//     loading,
+//   },
+// );
 
 const WebSearchToolInvocation = dynamic(
   () =>

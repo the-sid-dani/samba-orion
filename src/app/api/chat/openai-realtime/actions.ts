@@ -1,7 +1,8 @@
 "use server";
 
 import { APP_DEFAULT_TOOL_KIT } from "lib/ai/tools/tool-kit";
-import { AppDefaultToolkit } from "app-types/tool-kit";
+import { DefaultToolNameType } from "lib/ai/tools";
+import { Tool } from "ai";
 import logger from "lib/logger";
 import { chatRepository } from "lib/db/repository";
 import { getSession } from "auth/server";
@@ -17,12 +18,13 @@ export async function callAppDefaultToolAction(toolName: string, args: any) {
     logger.info(`Raw args:`, JSON.stringify(args, null, 2));
 
     // Search across all toolkits for the tool
-    let tool = null;
+    let tool: Tool | undefined = undefined;
     let toolkitName = "";
 
     for (const [toolkit, tools] of Object.entries(APP_DEFAULT_TOOL_KIT)) {
-      if (toolName in tools) {
-        tool = tools[toolName];
+      const toolsMap = tools as Partial<Record<DefaultToolNameType, Tool>>;
+      if (toolName in toolsMap) {
+        tool = toolsMap[toolName as DefaultToolNameType];
         toolkitName = toolkit;
         break;
       }
@@ -54,7 +56,14 @@ export async function callAppDefaultToolAction(toolName: string, args: any) {
     }
 
     // Execute the tool with validated parameters (same as Vercel AI SDK does)
-    const result = tool.execute(validatedArgs);
+    if (!tool.execute) {
+      throw new Error(`Tool ${toolName} does not have an execute function`);
+    }
+    const result = tool.execute(validatedArgs, {
+      toolCallId: `voice-${Date.now()}`,
+      abortSignal: new AbortController().signal,
+      messages: [],
+    });
 
     // Check if it's an async generator (chart tools use this pattern)
     if (Symbol.asyncIterator in Object(result)) {

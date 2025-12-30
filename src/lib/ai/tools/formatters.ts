@@ -1,5 +1,3 @@
-import { safe } from "ts-safe";
-
 export type FormatResult = {
   summaryForModel: string;
   structuredForUI?: unknown;

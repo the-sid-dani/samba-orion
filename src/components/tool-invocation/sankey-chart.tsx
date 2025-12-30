@@ -194,7 +194,6 @@ export function SankeyChart(props: SankeyChartProps) {
                 opacity={0.7}
                 style={{ cursor: "pointer" }}
                 onMouseEnter={(e) => {
-                  const _rect = e.currentTarget.getBoundingClientRect();
                   setTooltip({
                     visible: true,
                     x: e.clientX,

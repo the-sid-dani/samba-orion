@@ -627,15 +627,11 @@ export const convertToSavePart = <T extends UIMessagePart<any, any>>(
     .unwrap();
 };
 
-export function normalizeToolUIPartFromHistory(part: UIMessagePart): {
-  part: UIMessagePart;
+export function normalizeToolUIPartFromHistory(part: ToolUIPart): {
+  part: ToolUIPart;
   changed: boolean;
 } {
-  if (!isToolUIPart(part)) {
-    return { part, changed: false };
-  }
-
-  const normalized = { ...part } as ToolUIPart;
+  const normalized: ToolUIPart = { ...part };
   let changed = false;
 
   if (!normalized.toolCallId) {
@@ -643,15 +639,16 @@ export function normalizeToolUIPartFromHistory(part: UIMessagePart): {
     changed = true;
   }
 
+  // Normalize state if output exists but state doesn't reflect it
+  const currentState = normalized.state as string;
   if (
     normalized.output !== undefined &&
     normalized.output !== null &&
-    (!normalized.state ||
-      normalized.state === "input-available" ||
-      normalized.state === "input-streaming" ||
-      normalized.state === "call")
+    (currentState === "input-available" ||
+      currentState === "input-streaming" ||
+      currentState === "call")
   ) {
-    normalized.state = "output-available";
+    (normalized as any).state = "output-available";
     changed = true;
   }
 

@@ -273,7 +273,7 @@ export function ChatBotVoice() {
               0,
             toolName,
             lastUpdated: new Date().toISOString(),
-            isVoiceOriginated: true,
+            // voice-originated flag handled via source metadata
           },
         };
 
@@ -294,7 +294,7 @@ export function ChatBotVoice() {
 
   // CRITICAL: Chart tool detection for Canvas integration (copied from chat-bot.tsx)
   // Voice chat needs same Canvas processing as regular chat
-  const processingDebounceRef = useRef<NodeJS.Timeout>();
+  const processingDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     // Wait for initialization before processing new messages
@@ -562,7 +562,7 @@ export function ChatBotVoice() {
                   0,
                 toolName,
                 lastUpdated: new Date().toISOString(),
-                isVoiceOriginated: true, // Mark as voice-originated
+                // voice-originated flag handled via source metadata // Mark as voice-originated
               },
             };
 
@@ -664,7 +664,7 @@ export function ChatBotVoice() {
                 dataPoints: result.dataPoints || chartData?.data?.length || 0,
                 toolName,
                 lastUpdated: new Date().toISOString(),
-                isVoiceOriginated: true, // Mark as voice-originated
+                // voice-originated flag handled via source metadata // Mark as voice-originated
               },
             });
           }

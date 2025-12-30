@@ -13,7 +13,7 @@ import {
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 import { JsonViewPopup } from "../json-view-popup";
-import { generateUniqueKey, generateUUID } from "lib/utils";
+import { generateUUID } from "lib/utils";
 import { generateIntelligentTooltipLabels } from "./shared-tooltip-intelligence";
 
 // Dynamic import for react-gauge-component to avoid SSR issues
@@ -195,7 +195,7 @@ export function GaugeChart(props: GaugeChartProps) {
                 }}
                 pointer={{
                   elastic: true,
-                  animationSpeed: 800,
+                  animationDelay: 0,
                   color: "hsl(var(--foreground))",
                 }}
                 labels={{
@@ -207,19 +207,17 @@ export function GaugeChart(props: GaugeChartProps) {
                     },
                   },
                   tickLabels: {
-                    style: {
-                      fill: "hsl(var(--muted-foreground))",
-                      fontSize: "0.8rem",
+                    defaultTickValueConfig: {
+                      style: {
+                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: "0.8rem",
+                      },
                     },
                   },
                 }}
                 value={Math.max(0, Math.min(1, percentage / 100))} // Ensure value is within 0-1 range
                 minValue={0}
                 maxValue={1}
-                formatTextValue={(value: number) =>
-                  `${Math.round(value * 100)}${unit || "%"}`
-                }
-                style={{ width: "100%", height: "100%" }}
               />
 
               {/* Intelligent tooltip overlay */}

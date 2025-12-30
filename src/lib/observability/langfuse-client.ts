@@ -15,22 +15,7 @@ export const langfuse = new LangfuseClient({
     process.env.LANGFUSE_HOST ||
     process.env.LANGFUSE_BASE_URL ||
     "https://cloud.langfuse.com",
-  release: process.env.LANGFUSE_TRACING_RELEASE || "1.0.0",
-  environment:
-    process.env.LANGFUSE_TRACING_ENVIRONMENT ||
-    process.env.VERCEL_ENV ||
-    process.env.NODE_ENV ||
-    "development",
-  flushAt: 1, // Flush immediately for debugging
-  flushInterval: 1000, // Flush every 1 second
-  debug: true, // Enable debug logging to troubleshoot production tracing
+  // v4 SDK doesn't support release/environment in constructor
 });
 
-// Ensure traces are flushed on shutdown (serverless environments)
-if (typeof process !== "undefined") {
-  process.on("SIGTERM", async () => {
-    console.log("🔄 Flushing Langfuse SDK traces before shutdown...");
-    await langfuse.flushAsync();
-    console.log("✅ Langfuse SDK traces flushed successfully");
-  });
-}
+// Note: v4 SDK uses different flush approach - rely on instrumentation.ts for shutdown handling

@@ -3,12 +3,13 @@ import { ChatMessage } from "app-types/chat";
 /**
  * Detect if a thread contains voice messages
  * Checks first message for voice source metadata
+ * Works with any message array type
  */
-export function isVoiceThread(messages: ChatMessage[]): boolean {
+export function isVoiceThread(messages: unknown[]): boolean {
   if (!messages || messages.length === 0) return false;
 
   // Check if first message has voice source
-  const firstMessage = messages[0];
+  const firstMessage = messages[0] as { metadata?: { source?: string } };
   return firstMessage?.metadata?.source === "voice";
 }
 

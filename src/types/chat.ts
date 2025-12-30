@@ -10,6 +10,8 @@ export type ChatMetadata = {
   toolChoice?: "auto" | "none" | "manual";
   toolCount?: number;
   agentId?: string;
+  /** Source of the message - voice or chat */
+  source?: "voice" | "chat";
   errorInfo?: {
     type: string;
     message: string;

@@ -83,11 +83,36 @@ export async function selectThreadWithMessagesAction(threadId: string) {
   let messages =
     (await chatRepository.selectMessagesByThreadId(threadId)) ?? [];
 
-  // UI SAFETY PATCH: Some historical rows may have persisted assistant messages
-  // with an empty parts array (from a prior regression). Patch them at read time
-  // so the thread renders instead of disappearing. This does not mutate DB.
+  // CRITICAL FIX: Handle double-wrapped parts from json[] schema mismatch
+  // The schema uses json("parts").array() creating PostgreSQL json[], but UIMessage["parts"]
+  // is already an array. This causes parts to be stored/retrieved as [[{type: "text"}]]
+  // instead of [{type: "text"}]. Unwrap at read time.
   messages = messages.map((m) => {
-    if (m.role === "assistant" && (!m.parts || m.parts.length === 0)) {
+    let parts = m.parts;
+
+    // Unwrap double-wrapped parts: [[{type: "text"}]] -> [{type: "text"}]
+    if (
+      parts &&
+      Array.isArray(parts) &&
+      parts.length === 1 &&
+      Array.isArray(parts[0]) &&
+      (parts[0].length === 0 ||
+        (parts[0][0] &&
+          typeof parts[0][0] === "object" &&
+          "type" in parts[0][0]))
+    ) {
+      logger.info("Unwrapping double-wrapped parts array", {
+        messageId: m.id,
+        originalLength: parts.length,
+        unwrappedLength: parts[0].length,
+      });
+      parts = parts[0];
+    }
+
+    // UI SAFETY PATCH: Some historical rows may have persisted assistant messages
+    // with an empty parts array (from a prior regression). Patch them at read time
+    // so the thread renders instead of disappearing. This does not mutate DB.
+    if (m.role === "assistant" && (!parts || parts.length === 0)) {
       return {
         ...m,
         parts: [
@@ -98,7 +123,8 @@ export async function selectThreadWithMessagesAction(threadId: string) {
         ],
       } as any;
     }
-    return m;
+
+    return { ...m, parts };
   });
 
   return { ...thread, messages };
@@ -248,8 +274,8 @@ export async function generateObjectAction({
       isEnabled: true,
       metadata: {
         operation: "generate-object-action",
-        provider: model?.provider,
-        model: model?.model,
+        provider: model?.provider ?? "unknown",
+        model: model?.model ?? "unknown",
         environment,
       },
     },

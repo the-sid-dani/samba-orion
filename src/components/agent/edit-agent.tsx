@@ -49,6 +49,7 @@ const defaultConfig = (): PartialBy<
   return {
     name: "",
     description: "",
+    status: "active",
     icon: {
       type: "emoji",
       value:

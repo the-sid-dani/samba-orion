@@ -6,7 +6,7 @@
  */
 
 import { Tool } from "ai";
-import { AppDefaultToolkit, DefaultToolName } from "./index";
+import { AppDefaultToolkit } from "./index";
 import logger from "../../logger";
 import {
   validateToolRegistry,

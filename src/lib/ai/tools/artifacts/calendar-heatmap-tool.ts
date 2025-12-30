@@ -2,7 +2,6 @@ import { tool as createTool } from "ai";
 import { z } from "zod";
 import logger from "../../../logger";
 import { generateUUID } from "../../../utils";
-import { CHART_VALIDATORS } from "../../../validation/chart-data-validator";
 import { DefaultToolName } from "../index";
 
 /**

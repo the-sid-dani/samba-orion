@@ -1,0 +1,278 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2025-12-30T00:00:00Z",
+    "last_updated": "2025-12-30T00:45:00Z",
+    "completed": "2025-12-30T00:45:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "exhaustive",
+  "project_root": "/Users/sid/Desktop/2-Coding/Active/samba-orion",
+  "output_folder": "/Users/sid/Desktop/2-Coding/Active/samba-orion/_bmad-output/docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2025-12-30T00:05:00Z",
+      "summary": "Classified as monolith with 1 part, project_type: web"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2025-12-30T00:10:00Z",
+      "summary": "Found 35+ existing docs - prioritize source code analysis"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2025-12-30T00:20:00Z",
+      "summary": "Tech stack: Next.js 15.3.2, React 19, TypeScript, PostgreSQL/Drizzle, Vercel AI SDK 5.0, Langfuse"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2025-12-30T00:30:00Z",
+      "summary": "Analyzed 45+ API routes, Zustand state, 209 components, 20+ tools, Docker deployment"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2025-12-30T00:45:00Z",
+      "summary": "Generated 6 documentation files from source code analysis"
+    }
+  ],
+  "current_step": "complete",
+  "project_types": [
+    {
+      "part_id": "main",
+      "project_type_id": "web",
+      "display_name": "Samba AI"
+    }
+  ],
+  "findings": {
+    "project_classification": {
+      "repository_type": "monolith",
+      "parts_count": 1,
+      "primary_tech": "Next.js 15.3.2 with TypeScript",
+      "project_name": "samba-ai",
+      "version": "1.21.0"
+    },
+    "technology_stack": {
+      "framework": "Next.js 15.3.2",
+      "ui": "React 19.1.1",
+      "language": "TypeScript 5.9.2",
+      "database": "PostgreSQL with Drizzle ORM 0.41.0",
+      "auth": "Better-Auth 1.3.7",
+      "ai": "Vercel AI SDK 5.0.26",
+      "observability": "Langfuse SDK v4.1.0",
+      "styling": "Tailwind CSS 4.1.12",
+      "components": "Radix UI + custom",
+      "tables_count": 18,
+      "chart_tools_count": 18,
+      "ai_providers": [
+        "OpenAI",
+        "Google",
+        "Anthropic",
+        "xAI",
+        "OpenRouter",
+        "Ollama"
+      ]
+    },
+    "conditional_analysis": {
+      "api_routes_count": 45,
+      "state_management": "Zustand with persist",
+      "ui_components_count": 209,
+      "app_default_tools_count": 20,
+      "deployment": "Docker multi-stage + PostgreSQL 17"
+    },
+    "critical_bugs_discovered": [
+      {
+        "id": "BUG-001",
+        "severity": "critical",
+        "title": "Chat messages don't persist on page reload",
+        "symptom": "After navigating away and returning to a chat, messages are missing or render incorrectly (first message loses bubble styling)",
+        "root_cause": "Schema mismatch in src/lib/db/pg/schema.pg.ts:37 - parts column uses json('parts').notNull().array() creating PostgreSQL json[], but UIMessage['parts'] is already an array type",
+        "technical_details": {
+          "location": "src/lib/db/pg/schema.pg.ts:37",
+          "problematic_code": "parts: json('parts').notNull().array().$type<UIMessage['parts']>()",
+          "expected_storage": "[{type: 'text', text: 'hello'}]",
+          "actual_storage": "[[{type: 'text', text: 'hello'}]]",
+          "effect": "Double-wrapped arrays cause parts[0] to return an array instead of a part object, breaking message rendering"
+        },
+        "affected_files": [
+          "src/lib/db/pg/schema.pg.ts",
+          "src/app/api/chat/actions.ts",
+          "src/components/message.tsx",
+          "src/components/message-parts.tsx"
+        ],
+        "proposed_fix": {
+          "schema_change": "Remove .array() from parts column definition",
+          "runtime_patch": "Unwrap double-wrapped arrays in selectThreadWithMessagesAction",
+          "migration_needed": "Convert json[] to json column type"
+        },
+        "discovered_during": "exhaustive_scan",
+        "discovered_at": "2025-12-30T00:50:00Z"
+      }
+    ],
+    "typescript_errors": {
+      "total_errors": 58,
+      "critical_categories": [
+        {
+          "category": "Type Mismatches in Chat System",
+          "count": 16,
+          "files": [
+            "src/app/api/chat/shared.chat.ts - UIMessagePart generic type requires 2 args",
+            "src/app/api/chat/shared.chat.ts - Comparison will never match (output-available vs input-available)",
+            "src/components/chat-bot.tsx - UIMessage missing threadId, createdAt properties",
+            "src/components/chat-bot.tsx - UIMessagePart not assignable to tool type"
+          ],
+          "severity": "high",
+          "impact": "Chat functionality may break with certain message types"
+        },
+        {
+          "category": "Admin System Type Mismatches",
+          "count": 8,
+          "files": [
+            "src/app/(chat)/admin/agents/page.tsx - AgentSummary missing permissionCount, permissions",
+            "src/app/(chat)/admin/page.tsx - Missing updatedAt property on user",
+            "src/components/admin/admin-users-table.tsx - Import conflicts with local type",
+            "src/components/admin/agent-permission-dropdown.tsx - readonly not in allowed union type"
+          ],
+          "severity": "high",
+          "impact": "Admin pages may crash or show incorrect data"
+        },
+        {
+          "category": "OpenAI Realtime API Issues",
+          "count": 7,
+          "files": [
+            "src/app/api/chat/openai-realtime/actions.ts - Property 'inputSchema' does not exist on type 'never'",
+            "src/app/api/chat/openai-realtime/route.ts - String[] not assignable to AppDefaultToolkit[]"
+          ],
+          "severity": "medium",
+          "impact": "Voice chat functionality may not work correctly"
+        },
+        {
+          "category": "Geographic Chart Component",
+          "count": 6,
+          "files": [
+            "src/components/tool-invocation/geographic-chart.tsx - ComposableMap children prop error",
+            "src/components/tool-invocation/geographic-chart.tsx - Geographies prop error",
+            "src/components/tool-invocation/geographic-chart.tsx - Geography prop error"
+          ],
+          "severity": "medium",
+          "impact": "Geographic charts may not render correctly"
+        },
+        {
+          "category": "Unused Imports/Variables",
+          "count": 11,
+          "files": [
+            "src/app/api/chat/temporary/route.ts - langfuse declared but never read",
+            "src/app/api/chat/title/route.ts - langfuse declared but never read",
+            "src/components/message-parts.tsx - _InteractiveTable declared but never read",
+            "src/components/tool-invocation/gauge-chart.tsx - generateUniqueKey unused",
+            "src/components/tool-invocation/ban-chart.tsx - _isNeutral unused",
+            "src/components/tool-invocation/treemap-chart.tsx - extractValueLabel unused"
+          ],
+          "severity": "low",
+          "impact": "Code bloat, no runtime impact"
+        }
+      ]
+    },
+    "code_quality_issues": {
+      "leftover_backup_files": [
+        "src/components/tool-invocation/geographic-chart.tsx.tmp",
+        "src/components/tool-invocation/geographic-chart.tsx.backup"
+      ],
+      "as_any_casts": {
+        "count": 143,
+        "top_files": [
+          "src/components/message-parts.tsx (23 occurrences)",
+          "src/app/api/chat/route.ts (11 occurrences)",
+          "src/lib/ai/workflow/executor/workflow-executor.test.ts (9 occurrences)",
+          "src/lib/code-runner/safe-python-run.ts (8 occurrences)",
+          "src/lib/ai/speech/open-ai/use-voice-chat.openai.ts (7 occurrences)"
+        ],
+        "severity": "medium",
+        "impact": "Type safety bypassed, potential runtime errors"
+      },
+      "console_statements": {
+        "count": 279,
+        "severity": "low",
+        "note": "Many are intentional debug logging, but some appear to be dev leftovers"
+      },
+      "todo_comments": {
+        "count": 2,
+        "locations": [
+          "src/lib/db/pg/repositories/bookmark-repository.pg.ts:84 - Add workflow access check",
+          "src/components/layouts/app-sidebar-threads.tsx:318 - Implement dedicated search page"
+        ]
+      }
+    },
+    "security_concerns": [
+      {
+        "id": "SEC-001",
+        "severity": "medium",
+        "title": "Wildcard CORS on Workflow Execute Endpoint",
+        "location": "src/app/api/workflow/[id]/execute/route.ts:98",
+        "issue": "Access-Control-Allow-Origin: * allows any origin",
+        "recommendation": "Restrict to specific allowed origins or remove if not needed"
+      },
+      {
+        "id": "SEC-002",
+        "severity": "low",
+        "title": "dangerouslySetInnerHTML Usage",
+        "locations": [
+          "src/components/ui/chart.tsx:83 - Chart rendering",
+          "src/components/mermaid-diagram.tsx:117 - Mermaid SVG rendering"
+        ],
+        "note": "Both appear to use sanitized content (SVG from mermaid, chart styles)"
+      }
+    ],
+    "dead_code_indicators": {
+      "deprecated_patterns": [
+        "createChart references in 17 files - migration from legacy chart system incomplete?"
+      ],
+      "unreferenced_imports": 11,
+      "duplicate_type_definitions": [
+        "AdminUsersTableProps in admin-users-list.tsx conflicts with admin-users-table.tsx"
+      ]
+    },
+    "consistency_issues": [
+      {
+        "id": "CONS-001",
+        "title": "Agent Schema Missing Status Field",
+        "location": "src/components/agent/edit-agent.tsx:49",
+        "issue": "Default agent object missing required 'status' property",
+        "impact": "Agent creation may fail"
+      },
+      {
+        "id": "CONS-002",
+        "title": "Canvas Metadata Type Mismatch",
+        "locations": [
+          "src/components/canvas-panel.tsx:617",
+          "src/components/chat-bot.tsx:531",
+          "src/components/chat-bot-voice.tsx:665"
+        ],
+        "issue": "toolName property used but not defined in Canvas metadata type",
+        "impact": "Canvas tool tracking may not work"
+      },
+      {
+        "id": "CONS-003",
+        "title": "AIInsightsProps Missing Required Fields",
+        "location": "src/components/canvas-panel.tsx:372",
+        "issue": "prompt and insights props missing when constructing AIInsightsProps",
+        "impact": "AI insights feature may not work in Canvas"
+      }
+    ]
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "index.md",
+    "architecture.md",
+    "data-models.md",
+    "api-reference.md",
+    "development-guide.md",
+    "deployment-guide.md"
+  ],
+  "resume_instructions": "Documentation complete. Run again for updates."
+}

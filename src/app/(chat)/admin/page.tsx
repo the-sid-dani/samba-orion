@@ -70,6 +70,7 @@ export default async function AdminPage() {
         image: user.image || undefined,
         role: user.role as "admin" | "user",
         createdAt: user.createdAt,
+        updatedAt: (user as { updatedAt?: Date }).updatedAt || user.createdAt,
       }))}
       totalUsers={allUsers.length}
       adminUsers={adminUsers.length}

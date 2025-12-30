@@ -18,7 +18,6 @@ import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
 
 import { JsonViewPopup } from "../json-view-popup";
