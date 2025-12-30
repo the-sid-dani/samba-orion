@@ -810,8 +810,13 @@ export function buildResponseMessageFromStreamResult(
     }
   }
 
-  // Fallback: If no steps but result.text exists (simple text response)
-  if (parts.length === 0 && result.text && result.text.trim()) {
+  // Check if we captured any text from steps
+  const hasTextPart = parts.some((p) => p.type === "text");
+
+  // Fallback: If no text parts but result.text exists (cumulative text)
+  // This handles cases where step.text is empty but AI generated text
+  if (!hasTextPart && result.text && result.text.trim()) {
+    // Add text at the END (after tool calls) since that's the natural flow
     parts.push({
       type: "text",
       text: result.text,
