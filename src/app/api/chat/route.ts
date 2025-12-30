@@ -417,6 +417,32 @@ const handler = async (request: Request) => {
             try {
               logger.info("💾 Building response message from stream result");
 
+              // DEBUG: Log raw result.steps structure to understand MCP tool calls
+              logger.info("🔍 DEBUG: Raw result.steps structure", {
+                stepsCount: result.steps?.length || 0,
+                steps: result.steps?.map((step: any, idx: number) => ({
+                  stepIndex: idx,
+                  hasText: !!step.text,
+                  textLength: step.text?.length || 0,
+                  toolCalls: step.toolCalls?.map((tc: any) => ({
+                    toolName: tc.toolName,
+                    toolCallId: tc.toolCallId,
+                    hasArgs: tc.args !== undefined,
+                    argsKeys: tc.args ? Object.keys(tc.args) : [],
+                    argsEmpty:
+                      tc.args &&
+                      typeof tc.args === "object" &&
+                      Object.keys(tc.args).length === 0,
+                  })),
+                  toolResults: step.toolResults?.map((tr: any) => ({
+                    toolName: tr.toolName,
+                    toolCallId: tr.toolCallId,
+                    hasResult: tr.result !== undefined,
+                    resultType: typeof tr.result,
+                  })),
+                })),
+              });
+
               // ALWAYS use result.steps - it's the reliable source populated by streamText
               // capturedToolParts has race condition issues (may not be populated when onFinish fires)
               const responseMessage = buildResponseMessageFromStreamResult(
@@ -428,6 +454,20 @@ const handler = async (request: Request) => {
                 stepsCount: result.steps?.length || 0,
                 partsCount: responseMessage.parts.length,
                 partTypes: responseMessage.parts.map((p: any) => p.type),
+                // DEBUG: Show full parts structure for tool parts
+                toolPartsDetail: responseMessage.parts
+                  .filter((p: any) => p.type?.startsWith("tool-"))
+                  .map((p: any) => ({
+                    type: p.type,
+                    toolCallId: p.toolCallId,
+                    hasInput: p.input !== undefined,
+                    inputEmpty:
+                      p.input &&
+                      typeof p.input === "object" &&
+                      Object.keys(p.input).length === 0,
+                    state: p.state,
+                    hasOutput: p.output !== undefined,
+                  })),
               });
 
               // FINAL DEFENSE: Guarantee at least one renderable part before persistence.
@@ -779,7 +819,15 @@ const handler = async (request: Request) => {
                 toolCallId: (part as any).toolCallId,
                 state: (part as any).state,
                 hasInput: !!(part as any).input,
+                inputKeys:
+                  (part as any).input && typeof (part as any).input === "object"
+                    ? Object.keys((part as any).input)
+                    : [],
                 hasOutput: !!(part as any).output,
+                // DEBUG: Capture actual input for analysis
+                inputPreview:
+                  (part as any).input &&
+                  JSON.stringify((part as any).input).slice(0, 200),
               });
             }
 
