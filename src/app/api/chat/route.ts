@@ -417,25 +417,17 @@ const handler = async (request: Request) => {
             try {
               logger.info("💾 Building response message from stream result");
 
-              // CRITICAL FIX: Always use result.steps as source of truth for tool parts
-              // The capturedToolParts array has a race condition - it's populated by
-              // toUIMessageStream's messageMetadata callback which runs on a different
-              // timing path than onFinish. This caused tool calls to be lost when
-              // onFinish fired before all parts were captured.
-              //
-              // result.steps is populated by streamText and available in onFinish,
-              // making it the reliable source for tool call data.
-              const responseMessage: UIMessage =
-                buildResponseMessageFromStreamResult(result, message);
+              // ALWAYS use result.steps - it's the reliable source populated by streamText
+              // capturedToolParts has race condition issues (may not be populated when onFinish fires)
+              const responseMessage = buildResponseMessageFromStreamResult(
+                result,
+                message,
+              );
 
               logger.info("💾 Built response from result.steps", {
                 stepsCount: result.steps?.length || 0,
                 partsCount: responseMessage.parts.length,
-                toolParts: responseMessage.parts.filter((p: any) =>
-                  p.type?.startsWith("tool-"),
-                ).length,
-                // Log for debugging - capturedToolParts may still be empty due to race
-                capturedToolPartsCount: capturedToolParts.length,
+                partTypes: responseMessage.parts.map((p: any) => p.type),
               });
 
               // FINAL DEFENSE: Guarantee at least one renderable part before persistence.

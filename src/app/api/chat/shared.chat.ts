@@ -758,28 +758,13 @@ export function buildResponseMessageFromStreamResult(
       // Process tool calls
       if (step.toolCalls && Array.isArray(step.toolCalls)) {
         for (const toolCall of step.toolCalls) {
-          // CRITICAL FIX: Skip tool calls with empty/undefined args
-          // Anthropic API rejects tool_use content blocks with missing or empty input
-          if (
-            !toolCall.args ||
-            (typeof toolCall.args === "object" &&
-              Object.keys(toolCall.args).length === 0)
-          ) {
-            logger.warn(
-              `Skipping tool call with empty args: ${toolCall.toolName}`,
-              {
-                toolCallId: toolCall.toolCallId,
-                args: toolCall.args,
-                reason: "Empty args cause Anthropic API validation errors",
-              },
-            );
-            continue; // Skip this tool call entirely
-          }
-
+          // Include ALL tool calls for persistence - even those with empty args
+          // MCP tools may have no required parameters, so empty args is valid
+          // The Anthropic API issue only affects outbound messages, not persistence
           const toolPart: any = {
             type: `tool-${toolCall.toolName}`,
             toolCallId: toolCall.toolCallId,
-            input: toolCall.args,
+            input: toolCall.args || {},
             state: "call",
           };
           parts.push(toolPart);
@@ -802,17 +787,16 @@ export function buildResponseMessageFromStreamResult(
             callPart.state = "output-available";
             callPart.output = toolResult.result;
           } else {
-            // FIXED: Don't create parts with empty input
-            // Anthropic API requires valid input field for tool_use content
-            // If we don't have the original tool call args, skip the part entirely
-            logger.warn(
-              `Skipping tool result without matching call: ${toolResult.toolName}`,
-              {
-                toolCallId: toolResult.toolCallId,
-                reason: "No original input available",
-              },
-            );
-            // Part intentionally omitted - prevents API validation errors
+            // No call part found - create result part directly
+            // This can happen with multi-step tool calls or when call wasn't captured
+            // We need to persist this for UI rendering even if input is empty
+            parts.push({
+              type: `tool-${toolResult.toolName}`,
+              toolCallId: toolResult.toolCallId,
+              input: {}, // No input available if call wasn't found
+              state: "output-available",
+              output: toolResult.result,
+            });
           }
         }
       }
