@@ -417,7 +417,7 @@ const handler = async (request: Request) => {
             try {
               logger.info("💾 Building response message from stream result");
 
-              // DEBUG: Log raw result.steps structure to understand MCP tool calls
+              // DEBUG: Log raw result.steps structure with correct SDK field names
               logger.info("🔍 DEBUG: Raw result.steps structure", {
                 stepsCount: result.steps?.length || 0,
                 steps: result.steps?.map((step: any, idx: number) => ({
@@ -427,18 +427,26 @@ const handler = async (request: Request) => {
                   toolCalls: step.toolCalls?.map((tc: any) => ({
                     toolName: tc.toolName,
                     toolCallId: tc.toolCallId,
+                    // SDK uses `input` not `args`
+                    hasInput: tc.input !== undefined,
+                    inputKeys: tc.input ? Object.keys(tc.input) : [],
+                    inputEmpty:
+                      tc.input &&
+                      typeof tc.input === "object" &&
+                      Object.keys(tc.input).length === 0,
+                    // Fallback check for `args`
                     hasArgs: tc.args !== undefined,
-                    argsKeys: tc.args ? Object.keys(tc.args) : [],
-                    argsEmpty:
-                      tc.args &&
-                      typeof tc.args === "object" &&
-                      Object.keys(tc.args).length === 0,
                   })),
                   toolResults: step.toolResults?.map((tr: any) => ({
                     toolName: tr.toolName,
                     toolCallId: tr.toolCallId,
+                    // SDK uses `output` not `result`
+                    hasOutput: tr.output !== undefined,
+                    outputType: typeof tr.output,
+                    // Also has input
+                    hasInput: tr.input !== undefined,
+                    // Fallback check
                     hasResult: tr.result !== undefined,
-                    resultType: typeof tr.result,
                   })),
                 })),
               });

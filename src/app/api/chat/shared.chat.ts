@@ -758,13 +758,12 @@ export function buildResponseMessageFromStreamResult(
       // Process tool calls
       if (step.toolCalls && Array.isArray(step.toolCalls)) {
         for (const toolCall of step.toolCalls) {
-          // Include ALL tool calls for persistence - even those with empty args
-          // MCP tools may have no required parameters, so empty args is valid
-          // The Anthropic API issue only affects outbound messages, not persistence
+          // Include ALL tool calls for persistence
+          // Note: Vercel AI SDK uses `input` not `args` for tool call parameters
           const toolPart: any = {
             type: `tool-${toolCall.toolName}`,
             toolCallId: toolCall.toolCallId,
-            input: toolCall.args || {},
+            input: toolCall.input ?? toolCall.args ?? {}, // SDK uses `input`, fallback to `args` for compatibility
             state: "call",
           };
           parts.push(toolPart);
@@ -772,30 +771,42 @@ export function buildResponseMessageFromStreamResult(
       }
 
       // Process tool results - update corresponding call parts
+      // Note: Vercel AI SDK uses `output` not `result`, and also includes `input`
       if (step.toolResults && Array.isArray(step.toolResults)) {
         for (const toolResult of step.toolResults) {
           // Find the corresponding call part
           const callPart = parts.find(
             (p) =>
               typeof p === "object" &&
-              p.toolCallId && // FIX: Check toolCallId exists before comparing
+              p.toolCallId &&
               p.toolCallId === toolResult.toolCallId,
           );
+
+          // Get output value - SDK uses `output`, fallback to `result` for compatibility
+          const outputValue = toolResult.output ?? toolResult.result;
+          // SDK tool results also include `input`
+          const inputValue = toolResult.input;
 
           if (callPart) {
             // Update the existing part with result
             callPart.state = "output-available";
-            callPart.output = toolResult.result;
+            callPart.output = outputValue;
+            // If call part has empty input but result has input, use it
+            if (
+              inputValue &&
+              (!callPart.input || Object.keys(callPart.input).length === 0)
+            ) {
+              callPart.input = inputValue;
+            }
           } else {
             // No call part found - create result part directly
             // This can happen with multi-step tool calls or when call wasn't captured
-            // We need to persist this for UI rendering even if input is empty
             parts.push({
               type: `tool-${toolResult.toolName}`,
               toolCallId: toolResult.toolCallId,
-              input: {}, // No input available if call wasn't found
+              input: inputValue ?? {}, // SDK toolResults include input
               state: "output-available",
-              output: toolResult.result,
+              output: outputValue,
             });
           }
         }
