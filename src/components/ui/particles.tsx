@@ -133,7 +133,16 @@ const Particles: React.FC<ParticlesProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    const renderer = new Renderer({ depth: false, alpha: true });
+    // Try to create WebGL renderer - may fail after browser idle reclaims context
+    let renderer: Renderer;
+    try {
+      renderer = new Renderer({ depth: false, alpha: true });
+    } catch (error) {
+      // WebGL context creation failed - gracefully degrade
+      console.warn("⚠️ Particles: WebGL unavailable, skipping render", error);
+      return;
+    }
+
     const gl = renderer.gl;
     container.appendChild(gl.canvas);
     gl.clearColor(0, 0, 0, 0);

@@ -155,10 +155,18 @@ const LightRays: React.FC<LightRaysProps> = ({
 
       if (!containerRef.current) return;
 
-      const renderer = new Renderer({
-        dpr: Math.min(window.devicePixelRatio, 2),
-        alpha: true,
-      });
+      // Try to create WebGL renderer - may fail after browser idle reclaims context
+      let renderer: Renderer;
+      try {
+        renderer = new Renderer({
+          dpr: Math.min(window.devicePixelRatio, 2),
+          alpha: true,
+        });
+      } catch (error) {
+        // WebGL context creation failed - gracefully degrade
+        console.warn("⚠️ LightRays: WebGL unavailable, skipping render", error);
+        return;
+      }
       rendererRef.current = renderer;
 
       const gl = renderer.gl;
