@@ -2,6 +2,93 @@
 import { useEffect } from "react";
 import { SWRConfig } from "swr";
 
+// Extend Window for activity tracking
+declare global {
+  interface Window {
+    __lastActivityTimestamp?: number;
+  }
+}
+
+// Global error interceptor - catches errors BEFORE they hit React error boundary
+if (typeof window !== "undefined") {
+  // Track last activity for debugging
+  window.__lastActivityTimestamp = Date.now();
+  ["mousemove", "keydown", "click", "scroll"].forEach((event) => {
+    window.addEventListener(
+      event,
+      () => {
+        window.__lastActivityTimestamp = Date.now();
+      },
+      { passive: true },
+    );
+  });
+
+  // Catch unhandled errors at window level BEFORE React error boundary
+  window.addEventListener(
+    "error",
+    (event) => {
+      const idleDuration =
+        Date.now() - (window.__lastActivityTimestamp || Date.now());
+      const isAfterIdle = idleDuration > 30000; // 30s of no activity
+
+      console.warn("🔍 [Global Error Intercept]", {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error,
+        idleDuration: `${Math.floor(idleDuration / 1000)}s`,
+        isAfterIdle,
+        visibilityState: document.visibilityState,
+        timestamp: new Date().toISOString(),
+      });
+
+      // If this is an idle-recovery error (network/WebGL), try to suppress it
+      const errorMsg = (event.message || "").toLowerCase();
+      const isRecoverableIdleError =
+        isAfterIdle &&
+        (errorMsg.includes("fetch") ||
+          errorMsg.includes("network") ||
+          errorMsg.includes("webgl") ||
+          errorMsg.includes("context"));
+
+      if (isRecoverableIdleError) {
+        console.info("✨ Suppressing recoverable idle error");
+        event.preventDefault();
+        return false;
+      }
+    },
+    true,
+  ); // Capture phase to catch early
+
+  // Catch unhandled promise rejections
+  window.addEventListener("unhandledrejection", (event) => {
+    const idleDuration =
+      Date.now() - (window.__lastActivityTimestamp || Date.now());
+    const isAfterIdle = idleDuration > 30000;
+
+    console.warn("🔍 [Global Rejection Intercept]", {
+      reason: event.reason,
+      idleDuration: `${Math.floor(idleDuration / 1000)}s`,
+      isAfterIdle,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Suppress network-related rejections after idle
+    const reason = String(event.reason || "").toLowerCase();
+    const isRecoverableIdleRejection =
+      isAfterIdle &&
+      (reason.includes("fetch") ||
+        reason.includes("network") ||
+        reason.includes("abort"));
+
+    if (isRecoverableIdleRejection) {
+      console.info("✨ Suppressing recoverable idle rejection");
+      event.preventDefault();
+    }
+  });
+}
+
 /**
  * SWR Configuration Provider
  *
