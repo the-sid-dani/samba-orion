@@ -1,92 +1,13 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { SWRConfig } from "swr";
 
 // Extend Window for activity tracking
 declare global {
   interface Window {
     __lastActivityTimestamp?: number;
+    __errorInterceptorRegistered?: boolean;
   }
-}
-
-// Global error interceptor - catches errors BEFORE they hit React error boundary
-if (typeof window !== "undefined") {
-  // Track last activity for debugging
-  window.__lastActivityTimestamp = Date.now();
-  ["mousemove", "keydown", "click", "scroll"].forEach((event) => {
-    window.addEventListener(
-      event,
-      () => {
-        window.__lastActivityTimestamp = Date.now();
-      },
-      { passive: true },
-    );
-  });
-
-  // Catch unhandled errors at window level BEFORE React error boundary
-  window.addEventListener(
-    "error",
-    (event) => {
-      const idleDuration =
-        Date.now() - (window.__lastActivityTimestamp || Date.now());
-      const isAfterIdle = idleDuration > 30000; // 30s of no activity
-
-      console.warn("🔍 [Global Error Intercept]", {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error,
-        idleDuration: `${Math.floor(idleDuration / 1000)}s`,
-        isAfterIdle,
-        visibilityState: document.visibilityState,
-        timestamp: new Date().toISOString(),
-      });
-
-      // If this is an idle-recovery error (network/WebGL), try to suppress it
-      const errorMsg = (event.message || "").toLowerCase();
-      const isRecoverableIdleError =
-        isAfterIdle &&
-        (errorMsg.includes("fetch") ||
-          errorMsg.includes("network") ||
-          errorMsg.includes("webgl") ||
-          errorMsg.includes("context"));
-
-      if (isRecoverableIdleError) {
-        console.info("✨ Suppressing recoverable idle error");
-        event.preventDefault();
-        return false;
-      }
-    },
-    true,
-  ); // Capture phase to catch early
-
-  // Catch unhandled promise rejections
-  window.addEventListener("unhandledrejection", (event) => {
-    const idleDuration =
-      Date.now() - (window.__lastActivityTimestamp || Date.now());
-    const isAfterIdle = idleDuration > 30000;
-
-    console.warn("🔍 [Global Rejection Intercept]", {
-      reason: event.reason,
-      idleDuration: `${Math.floor(idleDuration / 1000)}s`,
-      isAfterIdle,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Suppress network-related rejections after idle
-    const reason = String(event.reason || "").toLowerCase();
-    const isRecoverableIdleRejection =
-      isAfterIdle &&
-      (reason.includes("fetch") ||
-        reason.includes("network") ||
-        reason.includes("abort"));
-
-    if (isRecoverableIdleRejection) {
-      console.info("✨ Suppressing recoverable idle rejection");
-      event.preventDefault();
-    }
-  });
 }
 
 /**
@@ -103,12 +24,107 @@ export function SWRConfigProvider({
 }: {
   children: React.ReactNode;
 }) {
+  // Track if we've registered listeners (prevents HMR accumulation)
+  const listenersRegisteredRef = useRef(false);
+
   useEffect(() => {
     console.log(
       "%c█▄▄ █▀▀ ▀█▀ ▀█▀ █▀▀ █▀█\n█▄█ █▄▄  █   █  █▄▄ █▀▄\n\n%c🧡 Samba AI - The Future of Agentic Advertising\nhttps://github.com/samba-tv/samba-ai",
       "color: #00d4ff; font-weight: bold; font-family: monospace; font-size: 16px; text-shadow: 0 0 10px #00d4ff;",
       "color: #888; font-size: 12px;",
     );
+
+    // Only register once per component mount (fixes HMR listener accumulation)
+    if (listenersRegisteredRef.current) return;
+    listenersRegisteredRef.current = true;
+
+    // Initialize activity timestamp
+    window.__lastActivityTimestamp = Date.now();
+
+    // Activity tracking handlers
+    const updateActivityTimestamp = () => {
+      window.__lastActivityTimestamp = Date.now();
+    };
+
+    const activityEvents = ["mousemove", "keydown", "click", "scroll"];
+    for (const event of activityEvents) {
+      window.addEventListener(event, updateActivityTimestamp, {
+        passive: true,
+      });
+    }
+
+    // Error interceptor - logs errors with idle context for debugging
+    // NOTE: ErrorEvent is NOT cancelable, so we only log, not suppress
+    const handleError = (event: ErrorEvent) => {
+      const idleDuration =
+        Date.now() - (window.__lastActivityTimestamp || Date.now());
+      const isAfterIdle = idleDuration > 30000;
+
+      console.warn("🔍 [Global Error Intercept]", {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error,
+        idleDuration: `${Math.floor(idleDuration / 1000)}s`,
+        isAfterIdle,
+        visibilityState: document.visibilityState,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Log if this looks like an idle-related error (for debugging)
+      const errorMsg = (event.message || "").toLowerCase();
+      const isIdleRelated =
+        isAfterIdle &&
+        (errorMsg.includes("fetch") ||
+          errorMsg.includes("network") ||
+          errorMsg.includes("webgl") ||
+          errorMsg.includes("context"));
+
+      if (isIdleRelated) {
+        console.info("ℹ️ This appears to be an idle-related error");
+      }
+    };
+
+    // Promise rejection handler - these ARE cancelable
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const idleDuration =
+        Date.now() - (window.__lastActivityTimestamp || Date.now());
+      const isAfterIdle = idleDuration > 30000;
+
+      console.warn("🔍 [Global Rejection Intercept]", {
+        reason: event.reason,
+        idleDuration: `${Math.floor(idleDuration / 1000)}s`,
+        isAfterIdle,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Suppress network-related rejections after idle (these ARE cancelable)
+      const reason = String(event.reason || "").toLowerCase();
+      const isRecoverableIdleRejection =
+        isAfterIdle &&
+        (reason.includes("fetch") ||
+          reason.includes("network") ||
+          reason.includes("abort"));
+
+      if (isRecoverableIdleRejection) {
+        console.info("✨ Suppressing recoverable idle rejection");
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener("error", handleError, true);
+    window.addEventListener("unhandledrejection", handleRejection);
+
+    // Cleanup on unmount
+    return () => {
+      for (const event of activityEvents) {
+        window.removeEventListener(event, updateActivityTimestamp);
+      }
+      window.removeEventListener("error", handleError, true);
+      window.removeEventListener("unhandledrejection", handleRejection);
+      listenersRegisteredRef.current = false;
+    };
   }, []);
 
   return (

@@ -98,6 +98,12 @@ export function useIdleDetection(
   }, []);
 
   const handleActivity = useCallback(() => {
+    // Clear any pending visibility timeout (Bug 3 fix: prevents stale idle trigger)
+    if (visibilityTimeoutRef.current) {
+      clearTimeout(visibilityTimeoutRef.current);
+      visibilityTimeoutRef.current = null;
+    }
+
     // Debounce rapid activity events (e.g., continuous mouse movement)
     if (activityDebounceRef.current) {
       clearTimeout(activityDebounceRef.current);
