@@ -15,10 +15,10 @@ export default async function AuthLayout({
               <BackgroundPaths />
             </div>
             <h1
-              className="text-3xl font-light tracking-wide animate-in fade-in duration-1000"
-              style={{ fontFamily: "var(--font-montserrat)", fontWeight: 300 }}
+              className="text-2xl tracking-wide animate-in fade-in duration-1000"
+              style={{ fontFamily: "var(--font-season)", fontWeight: 300 }}
             >
-              Samba AI
+              Samba Agentic Audiences
             </h1>
             <div className="flex-1" />
             <FlipWords

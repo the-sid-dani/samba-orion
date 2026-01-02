@@ -71,16 +71,14 @@ export function AppSidebar({
                   router.push("/");
                   router.refresh();
                 }}
+                className="flex items-center w-full"
               >
-                <h4
-                  className="text-xl font-light tracking-wide"
-                  style={{
-                    fontFamily: "var(--font-montserrat)",
-                    fontWeight: 400,
-                  }}
+                <span
+                  className="text-lg tracking-wide"
+                  style={{ fontFamily: "var(--font-season)", fontWeight: 300 }}
                 >
-                  Samba AI
-                </h4>
+                  Samba Agentic Audiences
+                </span>
                 <div
                   className="ml-auto block sm:hidden"
                   onClick={(e) => {

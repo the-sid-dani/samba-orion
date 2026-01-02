@@ -15,7 +15,7 @@
 - **Backend:** Next.js 15.3.2, PostgreSQL, Drizzle ORM 0.41.0
 - **Auth:** Better-Auth 1.3.7
 - **Frontend:** React 19.1.1, Tailwind CSS, Radix UI
-- **Typography:** Geist (sans), Geist Mono (code), Montserrat (branding, weights 300-600)
+- **Typography:** Geist (sans), Geist Mono (code), Montserrat (legacy), SeasonMix-Light (branding)
 - **Tools:** TypeScript 5.9.2, Biome 1.9.4, Vitest, Playwright
 
 ## Essential Commands
@@ -71,8 +71,8 @@ pnpm docker-compose:up     # Full stack
 **Workflow Engine:** Visual workflow builder using XYFlow
 
 **Branding System:** Clean, typography-focused design
-- Text-only "Samba AI" branding (no logo images in UI)
-- Montserrat font for brand identity (light weights: 300-400)
+- "Samba Agentic Audiences" brand text (no logo images in UI)
+- SeasonMix-Light font for brand identity (weight 300)
 - Elegant, minimalist aesthetic with focus on content
 
 ## Observability
@@ -152,9 +152,9 @@ DEBUG_CHAT_PERSISTENCE=1  # Verbose logging for chat/tool persistence
 - `src/lib/db/pg/schema.pg.ts` - Database schema
 
 **Branding & UI:**
-- `src/app/layout.tsx` - Font configuration (Geist, Geist Mono, Montserrat)
-- `src/app/(auth)/layout.tsx` - Auth page branding (text-only, Montserrat 300)
-- `src/components/layouts/app-sidebar.tsx` - Sidebar branding (text-only, Montserrat 400)
+- `src/app/layout.tsx` - Font configuration (Geist, Geist Mono, Montserrat, SeasonMix-Light)
+- `src/app/(auth)/layout.tsx` - Auth page branding (SeasonMix-Light)
+- `src/components/layouts/app-sidebar.tsx` - Sidebar branding (SeasonMix-Light)
 - `src/components/layouts/app-sidebar-user.tsx` - User dropdown menu
 
 ## Important Notes

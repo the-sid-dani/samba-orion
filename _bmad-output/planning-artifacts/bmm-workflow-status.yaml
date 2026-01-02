@@ -26,9 +26,9 @@ workflow_status:
   document-project: "_bmad-output/docs/index.md"
 
   # Phase 0 - Discovery (user selections)
-  brainstorm-project: skipped
-  research: skipped
-  product-brief: skipped
+  brainstorm-project: "_bmad-output/analysis/brainstorming-session-2025-12-30.md"
+  research: recommended
+  product-brief: optional
 
   # Phase 1 - Planning
   prd: required
