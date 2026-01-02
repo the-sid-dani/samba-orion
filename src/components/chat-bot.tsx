@@ -21,6 +21,7 @@ import { useShallow } from "zustand/shallow";
 
 import { deleteThreadAction } from "@/app/api/chat/actions";
 import { useGenerateThreadTitle } from "@/hooks/queries/use-generate-thread-title";
+import { useIdleDetection } from "@/hooks/use-idle-detection";
 import { useToRef } from "@/hooks/use-latest";
 import { useMounted } from "@/hooks/use-mounted";
 import { ChatApiSchemaRequestBody, ChatModel } from "app-types/chat";
@@ -285,6 +286,13 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     showCanvas,
     setActiveArtifactId,
   } = useCanvas();
+
+  // Idle detection - pauses WebGL animations and prevents error boundary triggers
+  // The hook emits idle:start and idle:end events that WebGL components listen to
+  useIdleDetection({
+    idleThreshold: 30000, // 30 seconds
+    pauseOnIdle: true,
+  });
 
   // Cleanup processed tools when thread changes to prevent memory leaks
   const processedToolsRef = useRef(new Set<string>());

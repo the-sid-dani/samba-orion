@@ -218,11 +218,14 @@ const Particles: React.FC<ParticlesProps> = ({
 
     const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
 
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
     let lastTime = performance.now();
     let elapsed = 0;
+    let isAnimationPaused = false;
 
     const update = (t: number) => {
+      if (isAnimationPaused) return;
+
       animationFrameId = requestAnimationFrame(update);
       const delta = t - lastTime;
       lastTime = t;
@@ -250,31 +253,65 @@ const Particles: React.FC<ParticlesProps> = ({
     // Handle WebGL context loss gracefully (common after browser idle)
     const handleContextLost = (event: Event) => {
       event.preventDefault();
-      console.info("ℹ️ Particles: WebGL context lost (browser idle recovery)");
-      cancelAnimationFrame(animationFrameId);
+      if (process.env.NODE_ENV === "development") {
+        console.info("ℹ️ Particles: WebGL context lost (browser idle recovery)");
+      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
     };
 
     const handleContextRestored = () => {
-      console.info("ℹ️ Particles: WebGL context restored - reinitializing");
+      if (process.env.NODE_ENV === "development") {
+        console.info("ℹ️ Particles: WebGL context restored - reinitializing");
+      }
       // Force useEffect to re-run by updating state
       setContextKey((k) => k + 1);
+    };
+
+    // Handle pause/resume from idle detection
+    const handleIdleStart = () => {
+      isAnimationPaused = true;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.info("ℹ️ Particles: Animation paused (idle)");
+      }
+    };
+
+    const handleIdleEnd = () => {
+      // Only resume if not already running and context is valid (F7 fix)
+      if (animationFrameId !== null) return; // Already running
+      if (!gl?.canvas) return; // Context lost
+
+      isAnimationPaused = false;
+      lastTime = performance.now(); // Reset timing to avoid jump
+      animationFrameId = requestAnimationFrame(update);
+      if (process.env.NODE_ENV === "development") {
+        console.info("ℹ️ Particles: Animation resumed");
+      }
     };
 
     const canvas = gl.canvas as HTMLCanvasElement;
     canvas.addEventListener("webglcontextlost", handleContextLost);
     canvas.addEventListener("webglcontextrestored", handleContextRestored);
+    window.addEventListener("idle:start", handleIdleStart);
+    window.addEventListener("idle:end", handleIdleEnd);
 
     animationFrameId = requestAnimationFrame(update);
 
     return () => {
       canvas.removeEventListener("webglcontextlost", handleContextLost);
       canvas.removeEventListener("webglcontextrestored", handleContextRestored);
+      window.removeEventListener("idle:start", handleIdleStart);
+      window.removeEventListener("idle:end", handleIdleEnd);
       window.removeEventListener("resize", resize);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (moveParticlesOnHover) {
         container.removeEventListener("mousemove", handleMouseMove);
       }
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
       if (gl.canvas) {
         gl.canvas.style.opacity = "0";

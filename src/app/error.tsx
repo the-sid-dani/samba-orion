@@ -1,8 +1,76 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
+
+/**
+ * Categorize error source for telemetry and debugging
+ */
+type ErrorSource = "webgl" | "swr" | "network" | "hydration" | "unknown";
+
+function categorizeError(error: Error): {
+  source: ErrorSource;
+  isRecoverable: boolean;
+  userMessage: string;
+} {
+  const msg = error.message?.toLowerCase() || "";
+  const name = error.name?.toLowerCase() || "";
+
+  // WebGL/Canvas errors
+  if (
+    msg.includes("webgl") ||
+    msg.includes("context lost") ||
+    msg.includes("canvas")
+  ) {
+    return {
+      source: "webgl",
+      isRecoverable: true,
+      userMessage:
+        "The graphics context was lost after being idle. This is normal browser behavior.",
+    };
+  }
+
+  // Network/Fetch errors
+  if (
+    (name === "typeerror" &&
+      (msg.includes("fetch") || msg.includes("network"))) ||
+    msg.includes("failed to fetch") ||
+    msg.includes("networkerror")
+  ) {
+    return {
+      source: "network",
+      isRecoverable: true,
+      userMessage:
+        "A network request failed. Please check your connection and try again.",
+    };
+  }
+
+  // SWR revalidation errors
+  if (msg.includes("revalidat") || msg.includes("swr")) {
+    return {
+      source: "swr",
+      isRecoverable: true,
+      userMessage: "Data refresh failed. Click Try Again to reload.",
+    };
+  }
+
+  // Hydration errors
+  if (msg.includes("hydrat") || msg.includes("mismatch")) {
+    return {
+      source: "hydration",
+      isRecoverable: true,
+      userMessage: "Page state became stale. Refreshing will fix this.",
+    };
+  }
+
+  return {
+    source: "unknown",
+    isRecoverable: false,
+    userMessage:
+      "An unexpected error occurred. You can try again or return to the home page.",
+  };
+}
 
 /**
  * App-level Error Boundary
@@ -23,26 +91,40 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    // Log for debugging and observability
-    // TODO: Send to error tracking service (Sentry, etc.) for production visibility
-    console.error("🚨 Error Boundary caught:", {
-      message: error.message,
-      digest: error.digest,
-      name: error.name,
-      timestamp: new Date().toISOString(),
-    });
+  const errorInfo = useMemo(() => categorizeError(error), [error]);
 
-    // If this is a WebGL context loss, it might auto-recover
-    if (
-      error.message.includes("WebGL") ||
-      error.message.includes("context lost")
-    ) {
+  useEffect(() => {
+    // Structured error telemetry for observability
+    const telemetry = {
+      source: errorInfo.source,
+      isRecoverable: errorInfo.isRecoverable,
+      message: error.message,
+      name: error.name,
+      digest: error.digest,
+      timestamp: new Date().toISOString(),
+      url: typeof window !== "undefined" ? window.location.href : undefined,
+      userAgent:
+        typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+    };
+
+    // Log structured data for debugging
+    console.error("🚨 Error Boundary caught:", telemetry);
+
+    // Log to console with source tag for filtering
+    console.error(`[ErrorBoundary:${errorInfo.source}]`, error);
+
+    // Future: Send to Langfuse/Sentry
+    // if (typeof window !== "undefined" && window.Langfuse) {
+    //   window.Langfuse.captureException(error, { extra: telemetry });
+    // }
+
+    // Auto-recovery for WebGL - the context often restores automatically
+    if (errorInfo.source === "webgl") {
       console.info(
         "ℹ️ WebGL context loss detected - will attempt auto-recovery",
       );
     }
-  }, [error]);
+  }, [error, errorInfo]);
 
   const handleReset = () => {
     // Trigger SWR revalidation on reset (SWR listens for focus events)
@@ -58,7 +140,10 @@ export default function Error({
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div
+      className="flex-1 flex items-center justify-center p-8"
+      data-error-source={errorInfo.source}
+    >
       <div className="max-w-md w-full space-y-6 text-center">
         {/* Error Icon */}
         <div className="flex justify-center">
@@ -73,10 +158,7 @@ export default function Error({
             Something went wrong
           </h2>
           <p className="text-sm text-muted-foreground">
-            {error.message.includes("WebGL") ||
-            error.message.includes("context")
-              ? "The graphics context was lost after being idle. This is normal browser behavior."
-              : "An unexpected error occurred. You can try again or return to the home page."}
+            {errorInfo.userMessage}
           </p>
         </div>
 

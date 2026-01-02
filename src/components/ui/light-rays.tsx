@@ -353,6 +353,35 @@ void main() {
         }
       };
 
+      // Handle pause/resume from external control (idle detection)
+      const handleIdleStart = () => {
+        if (animationIdRef.current) {
+          cancelAnimationFrame(animationIdRef.current);
+          animationIdRef.current = null;
+          if (process.env.NODE_ENV === "development") {
+            console.info("ℹ️ LightRays: Animation paused (idle)");
+          }
+        }
+      };
+
+      const handleIdleEnd = () => {
+        // Validate all refs before resuming (F6 fix)
+        if (
+          !animationIdRef.current &&
+          rendererRef.current &&
+          uniformsRef.current &&
+          meshRef.current
+        ) {
+          animationIdRef.current = requestAnimationFrame(loop);
+          if (process.env.NODE_ENV === "development") {
+            console.info("ℹ️ LightRays: Animation resumed");
+          }
+        }
+      };
+
+      window.addEventListener("idle:start", handleIdleStart);
+      window.addEventListener("idle:end", handleIdleEnd);
+
       const handleBeforeUnload = () => {
         if (renderer?.gl?.canvas) {
           renderer.gl.canvas.style.opacity = "0";
@@ -363,16 +392,26 @@ void main() {
       // Handle WebGL context loss gracefully (common after browser idle)
       const handleContextLost = (event: Event) => {
         event.preventDefault(); // Prevent default error behavior
-        console.info("ℹ️ LightRays: WebGL context lost (browser idle recovery)");
+        if (process.env.NODE_ENV === "development") {
+          console.info(
+            "ℹ️ LightRays: WebGL context lost (browser idle recovery)",
+          );
+        }
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current);
           animationIdRef.current = null;
         }
+        // Clear refs to prevent stale state on restore
+        rendererRef.current = null;
+        uniformsRef.current = null;
+        meshRef.current = null;
       };
 
       const handleContextRestored = () => {
-        console.info("ℹ️ LightRays: WebGL context restored");
-        // Re-initialize on context restore
+        if (process.env.NODE_ENV === "development") {
+          console.info("ℹ️ LightRays: WebGL context restored");
+        }
+        // Re-initialize on context restore (refs already cleared in contextLost)
         initializeWebGL();
       };
 
@@ -391,6 +430,8 @@ void main() {
           "webglcontextrestored",
           handleContextRestored,
         );
+        window.removeEventListener("idle:start", handleIdleStart);
+        window.removeEventListener("idle:end", handleIdleEnd);
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current);
           animationIdRef.current = null;
