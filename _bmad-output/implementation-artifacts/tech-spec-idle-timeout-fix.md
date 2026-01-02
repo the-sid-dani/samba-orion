@@ -223,6 +223,7 @@ function useIdleDetection(options?: IdleDetectionOptions): IdleDetectionResult;
 ## Review Notes
 
 ### Initial Review (2026-01-02)
+
 - Adversarial review completed
 - Findings: 7 total, 6 fixed, 1 skipped (noise)
 - Resolution approach: Auto-fix
@@ -230,7 +231,9 @@ function useIdleDetection(options?: IdleDetectionOptions): IdleDetectionResult;
 - All tests passing (317 passed)
 
 ### Code Review (2026-01-02) - Barry
+
 **9 issues found, all fixed:**
+
 - **[C1]** Staged new files (were untracked)
 - **[C2]** Removed dead code `use-silent-retry.ts` (never imported)
 - **[C3]** Test coverage deferred to future sprint
