@@ -83,6 +83,7 @@ export function AppSidebar({
                     height={91}
                     className="hidden dark:block h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
                     priority
+                    unoptimized
                   />
                   {/* Light mode - black logo */}
                   <Image
@@ -92,6 +93,7 @@ export function AppSidebar({
                     height={91}
                     className="block dark:hidden h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
                     priority
+                    unoptimized
                   />
                 </>
                 <div

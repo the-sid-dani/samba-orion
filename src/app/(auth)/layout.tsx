@@ -24,6 +24,7 @@ export default async function AuthLayout({
                 height={91}
                 className="hidden dark:block h-[32px] w-auto max-w-full"
                 priority
+                unoptimized
               />
               {/* Light mode - black logo */}
               <Image
@@ -33,6 +34,7 @@ export default async function AuthLayout({
                 height={91}
                 className="block dark:hidden h-[32px] w-auto max-w-full"
                 priority
+                unoptimized
               />
             </h1>
             <div className="flex-1" />
