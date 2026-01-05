@@ -1,12 +1,20 @@
-name: Lint and Type Check
+name: PR Validation
 
 on:
   pull_request:
+    branches: [main, develop]
+  push:
     branches: [main]
 
+concurrency:
+  group: pr-validation-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
-  lint_and_type_check:
+  validate:
+    name: Lint, Type Check & Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -17,11 +25,11 @@ jobs:
         with:
           version: 10.2.1
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -45,5 +53,14 @@ jobs:
       - name: Run Type Check
         run: pnpm check-types:fast
 
-      - name: Run Tests
+      - name: Run Unit Tests
         run: pnpm test
+
+      - name: Build check
+        run: pnpm build:local
+        env:
+          SKIP_ENV_VALIDATION: true
+
+      - name: Verify MCP tool loading
+        run: pnpm test agent-tool-loading.test.ts
+

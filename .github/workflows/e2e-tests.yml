@@ -6,30 +6,39 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: e2e-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  # Database
+  POSTGRES_URL: postgresql://testuser:testpass@localhost:5432/better_chatbot_test
+
+  # Authentication
+  BETTER_AUTH_SECRET: test-secret-key-for-ci-only-not-for-production-use
+  BETTER_AUTH_URL: http://localhost:3000
+
+  # Application
+  NEXT_PUBLIC_BASE_URL: http://localhost:3000
+
+  # LLM Provider
+  OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY || 'test-key' }}
+  E2E_DEFAULT_MODEL: openRouter/moonshotai/kimi-k2:free
+
+  # Feature flags
+  DISABLE_SIGN_UP: 0
+  DISABLE_EMAIL_SIGN_IN: 0
+  FILE_BASED_MCP_CONFIG: false
+
 jobs:
-  e2e:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # BURN-IN: Detect flaky tests in changed specs BEFORE running full suite
+  # ─────────────────────────────────────────────────────────────────────────────
+  burn-in:
+    name: Burn-In (Flaky Detection)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    env:
-      # Database
-      POSTGRES_URL: postgresql://testuser:testpass@localhost:5432/better_chatbot_test
-
-      # Authentication
-      BETTER_AUTH_SECRET: test-secret-key-for-ci-only-not-for-production-use
-      BETTER_AUTH_URL: http://localhost:3000
-
-      # Application
-      NEXT_PUBLIC_BASE_URL: http://localhost:3000
-
-      # LLM Provider (OpenRouter with free models)
-      OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY || 'test-key' }}
-      E2E_DEFAULT_MODEL: openRouter/moonshotai/kimi-k2:free
-
-      # Feature flags
-      DISABLE_SIGN_UP: 0
-      DISABLE_EMAIL_SIGN_IN: 0
-      FILE_BASED_MCP_CONFIG: false
+    timeout-minutes: 20
+    if: github.event_name == 'pull_request'
 
     services:
       postgres:
@@ -47,29 +56,40 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for accurate diff
 
-      - uses: pnpm/action-setup@v3
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: 10.2.1
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -77,14 +97,8 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm playwright install chromium --with-deps
 
-      - name: Setup test environment
-        run: |
-          # Create minimal .env for Playwright (only non-runtime vars if needed)
-          touch .env
-
       - name: Setup database
         run: |
-          # Force drop and recreate database to ensure clean state
           PGPASSWORD=testpass psql -h localhost -U testuser -d postgres -c "DROP DATABASE IF EXISTS better_chatbot_test;"
           PGPASSWORD=testpass psql -h localhost -U testuser -d postgres -c "CREATE DATABASE better_chatbot_test;"
 
@@ -94,12 +108,156 @@ jobs:
       - name: Build application
         run: pnpm build:local
 
-      - name: Run E2E tests
-        run: pnpm test:e2e
+      - name: Detect changed test files
+        id: changed-tests
+        run: |
+          CHANGED_SPECS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(spec|test)\.(ts|js)$' | tr '\n' ' ' || echo "")
+          echo "changed_specs=${CHANGED_SPECS}" >> $GITHUB_OUTPUT
+          if [ -n "$CHANGED_SPECS" ]; then
+            echo "🔍 Changed test files detected:"
+            echo "$CHANGED_SPECS" | tr ' ' '\n' | sed 's/^/  - /'
+          else
+            echo "✅ No test files changed"
+          fi
 
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+      - name: Run burn-in (5 iterations)
+        if: steps.changed-tests.outputs.changed_specs != ''
+        run: |
+          SPECS="${{ steps.changed-tests.outputs.changed_specs }}"
+          echo "🔥 Running burn-in: 5 iterations on changed specs"
+          for i in {1..5}; do
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🔄 Burn-in iteration $i/5"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            pnpm test:e2e -- $SPECS || {
+              echo "❌ Burn-in failed on iteration $i - TEST IS FLAKY!"
+              exit 1
+            }
+            echo "✅ Iteration $i passed"
+          done
+          echo ""
+          echo "🎉 Burn-in complete: 5/5 iterations passed"
+          echo "Changed specs are stable."
+
+      - name: Upload burn-in artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: burn-in-failures
+          path: test-results/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # E2E SHARDED: Run full test suite across 4 parallel shards
+  # ─────────────────────────────────────────────────────────────────────────────
+  e2e-sharded:
+    name: E2E Tests (Shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [burn-in]
+    if: always() && (needs.burn-in.result == 'success' || needs.burn-in.result == 'skipped')
+
+    strategy:
+      fail-fast: false # Run all shards even if one fails
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: better_chatbot_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.2.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm playwright install chromium --with-deps
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=testpass psql -h localhost -U testuser -d postgres -c "DROP DATABASE IF EXISTS better_chatbot_test;"
+          PGPASSWORD=testpass psql -h localhost -U testuser -d postgres -c "CREATE DATABASE better_chatbot_test;"
+
+      - name: Run database migrations
+        run: pnpm db:push
+
+      - name: Build application
+        run: pnpm build:local
+
+      - name: Run E2E tests (shard ${{ matrix.shard }}/4)
+        run: pnpm test:e2e -- --shard=${{ matrix.shard }}/4
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # REPORT: Aggregate results and report status
+  # ─────────────────────────────────────────────────────────────────────────────
+  report:
+    name: Test Results Summary
+    runs-on: ubuntu-latest
+    needs: [e2e-sharded]
+    if: always()
+
+    steps:
+      - name: Check shard results
+        run: |
+          if [ "${{ needs.e2e-sharded.result }}" == "failure" ]; then
+            echo "❌ One or more E2E test shards failed"
+            exit 1
+          elif [ "${{ needs.e2e-sharded.result }}" == "success" ]; then
+            echo "✅ All E2E test shards passed"
+          else
+            echo "⚠️ E2E tests skipped or cancelled"
+            exit 1
+          fi
