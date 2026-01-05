@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import Image from "next/image";
 import { FlipWords } from "ui/flip-words";
 import { BackgroundPaths } from "ui/background-paths";
 
@@ -14,11 +15,25 @@ export default async function AuthLayout({
             <div className="absolute inset-0 w-full h-full">
               <BackgroundPaths />
             </div>
-            <h1
-              className="text-2xl tracking-wide animate-in fade-in duration-1000"
-              style={{ fontFamily: "var(--font-season)", fontWeight: 300 }}
-            >
-              Samba Agentic Audiences
+            <h1 className="animate-in fade-in duration-1000">
+              {/* Dark mode - white logo */}
+              <Image
+                src="/samba-resources/logos/samba-agentic-white.svg"
+                alt="Samba Agentic Audiences"
+                width={904}
+                height={91}
+                className="hidden dark:block h-[32px] w-auto max-w-full"
+                priority
+              />
+              {/* Light mode - black logo */}
+              <Image
+                src="/samba-resources/logos/samba-agentic-black.svg"
+                alt="Samba Agentic Audiences"
+                width={904}
+                height={91}
+                className="block dark:hidden h-[32px] w-auto max-w-full"
+                priority
+              />
             </h1>
             <div className="flex-1" />
             <FlipWords

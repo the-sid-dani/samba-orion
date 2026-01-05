@@ -9,6 +9,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "ui/sidebar";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -53,7 +54,7 @@ export function AppSidebar({
     if (isMobile) {
       setOpenMobile(false);
     }
-  }, [currentPath, isMobile]);
+  }, [currentPath, isMobile, setOpenMobile]);
 
   return (
     <Sidebar
@@ -73,12 +74,26 @@ export function AppSidebar({
                 }}
                 className="flex items-center w-full"
               >
-                <span
-                  className="text-lg tracking-wide"
-                  style={{ fontFamily: "var(--font-season)", fontWeight: 300 }}
-                >
-                  Samba Agentic Audiences
-                </span>
+                <>
+                  {/* Dark mode - white logo */}
+                  <Image
+                    src="/samba-resources/logos/samba-agentic-white.svg"
+                    alt="Samba Agentic Audiences"
+                    width={904}
+                    height={91}
+                    className="hidden dark:block h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
+                    priority
+                  />
+                  {/* Light mode - black logo */}
+                  <Image
+                    src="/samba-resources/logos/samba-agentic-black.svg"
+                    alt="Samba Agentic Audiences"
+                    width={904}
+                    height={91}
+                    className="block dark:hidden h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
+                    priority
+                  />
+                </>
                 <div
                   className="ml-auto block sm:hidden"
                   onClick={(e) => {
