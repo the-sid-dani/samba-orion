@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "lib/utils";
+import { getStorageManager } from "lib/browser-stroage";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart } from "./tool-invocation/bar-chart";
 import { LineChart } from "./tool-invocation/line-chart";
@@ -675,13 +676,42 @@ export function CanvasPanel({
 
 // Simple Canvas naming - uses AI-provided canvas names
 
+// Type for persisted canvas state (survives component remounts within session)
+interface PersistedCanvasState {
+  isVisible: boolean;
+  userManuallyClosed: boolean;
+}
+
+// Storage manager for canvas state - SSR-safe (returns no-op on server)
+const canvasStateStorage = getStorageManager<PersistedCanvasState>(
+  "canvas-state",
+  "session",
+);
+
 // Export simple canvas hook for managing canvas state
 export function useCanvas() {
-  const [isVisible, setIsVisible] = useState(false);
+  // Read initial state from sessionStorage (persists across remounts)
+  const initialState = canvasStateStorage.get({
+    isVisible: false,
+    userManuallyClosed: false,
+  });
+
+  // Log storage read on initialization (only in dev)
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      "🎭 useCanvas Debug: [storage] Initialized from sessionStorage:",
+      initialState,
+      `(timestamp: ${new Date().toISOString()})`,
+    );
+  }
+
+  const [isVisible, setIsVisible] = useState(initialState.isVisible);
   const [artifacts, setArtifacts] = useState<CanvasArtifact[]>([]);
   const [activeArtifactId, setActiveArtifactId] = useState<string>();
   const [canvasName, setCanvasName] = useState<string>("Canvas");
-  const [userManuallyClosed, setUserManuallyClosed] = useState(false);
+  const [userManuallyClosed, setUserManuallyClosed] = useState(
+    initialState.userManuallyClosed,
+  );
 
   // Debug state management with detailed logging
   const debugPrefix = "🎭 useCanvas Debug:";
@@ -723,6 +753,19 @@ export function useCanvas() {
       debugLog("Canvas hook unmounting - cleanup initiated");
     };
   }, []);
+
+  // Sync visibility state to sessionStorage (persists across component remounts)
+  useEffect(() => {
+    const state = { isVisible, userManuallyClosed };
+    canvasStateStorage.set(state);
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `${debugPrefix} [storage] Persisted state:`,
+        state,
+        `(timestamp: ${new Date().toISOString()})`,
+      );
+    }
+  }, [isVisible, userManuallyClosed, debugPrefix]);
 
   // Update canvas name when artifacts change - with safety checks
   useEffect(() => {
