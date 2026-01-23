@@ -21,6 +21,8 @@ const staticModels = {
     "gemini-2.5-pro": google("gemini-2.5-pro"),
   },
   anthropic: {
+    "claude-4.5-opus": anthropic("claude-opus-4-5-20251101"),
+    "claude-4.5-sonnet": anthropic("claude-sonnet-4-5-20251022"),
     "claude-4-sonnet": anthropic("claude-4-sonnet-20250514"),
   },
   xai: {
@@ -60,7 +62,7 @@ export const isToolCallUnsupportedModel = (model: LanguageModel) => {
   return allUnsupportedModels.has(model);
 };
 
-const fallbackModel = staticModels.anthropic["claude-4-sonnet"];
+const fallbackModel = staticModels.anthropic["claude-4.5-sonnet"];
 
 export const customModelProvider = {
   modelsInfo: Object.entries(allModels).map(([provider, models]) => ({

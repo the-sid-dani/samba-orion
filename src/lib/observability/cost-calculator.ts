@@ -16,6 +16,8 @@ const MODEL_PRICING = {
     "gpt-5-nano": { input: 0.001, output: 0.002 },
   },
   anthropic: {
+    "claude-4.5-opus": { input: 0.015, output: 0.075 },
+    "claude-4.5-sonnet": { input: 0.003, output: 0.015 },
     "claude-4-sonnet": { input: 0.003, output: 0.015 },
     "claude-4-opus": { input: 0.015, output: 0.075 },
     "claude-3-7-sonnet": { input: 0.003, output: 0.015 },

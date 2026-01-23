@@ -69,7 +69,7 @@ const initialState: AppState = {
     AppDefaultToolkit.Http,
   ],
   toolPresets: [],
-  chatModel: { provider: "anthropic", model: "claude-4-sonnet" },
+  chatModel: { provider: "anthropic", model: "claude-4.5-sonnet" },
   openShortcutsPopup: false,
   openChatPreferences: false,
   mcpCustomizationPopup: undefined,
