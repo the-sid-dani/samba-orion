@@ -41,9 +41,9 @@ const seasonMix = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "samba-ai",
+  title: "Samba Agentic Suite",
   description:
-    "Samba-AI is an AI chatbot platform that uses advanced tools to answer questions.",
+    "Samba Agentic Suite is an AI chatbot platform that uses advanced tools to answer questions.",
 };
 
 // const themes = BASE_THEMES.flatMap((t) => [t, `${t}-dark`]);

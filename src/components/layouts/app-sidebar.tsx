@@ -74,28 +74,15 @@ export function AppSidebar({
                 }}
                 className="flex items-center w-full"
               >
-                <>
-                  {/* Dark mode - white logo */}
-                  <Image
-                    src="/samba-resources/logos/samba-agentic-white.svg"
-                    alt="Samba Agentic Audiences"
-                    width={904}
-                    height={91}
-                    className="hidden dark:block h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
-                    priority
-                    unoptimized
-                  />
-                  {/* Light mode - black logo */}
-                  <Image
-                    src="/samba-resources/logos/samba-agentic-black.svg"
-                    alt="Samba Agentic Audiences"
-                    width={904}
-                    height={91}
-                    className="block dark:hidden h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
-                    priority
-                    unoptimized
-                  />
-                </>
+                <Image
+                  src="/samba-resources/logos/agentic-suite-logo.png"
+                  alt="Agentic Suite"
+                  width={904}
+                  height={91}
+                  className="h-[24px] w-auto max-w-full ml-0.5 mt-0.5"
+                  priority
+                  unoptimized
+                />
                 <div
                   className="ml-auto block sm:hidden"
                   onClick={(e) => {
