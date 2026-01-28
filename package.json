@@ -89,6 +89,7 @@
     "@tiptap/starter-kit": "^2.26.1",
     "@tiptap/suggestion": "^2.26.1",
     "@uiw/react-heat-map": "^2.3.3",
+    "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.2.0",
     "@xyflow/react": "^12.8.4",
     "ai": "^5.0.26",
@@ -161,7 +162,10 @@
     "vitest": "^3.2.4"
   },
   "lint-staged": {
-    "*.{js,json,mjs,ts,yaml,tsx,css}": ["pnpm format", "pnpm lint:fix"]
+    "*.{js,json,mjs,ts,yaml,tsx,css}": [
+      "pnpm format",
+      "pnpm lint:fix"
+    ]
   },
   "packageManager": "pnpm@10.2.1",
   "engines": {
